@@ -102,7 +102,7 @@ atm_face_recognition/
 
 ### Step 1 — Clone the Repository
 ```bash
-git clone https://github.com/yourusername/atm-face-recognition.git
+git clone https://github.com/yogalakshmim04/ai-powered-secure-atm-system
 cd atm-face-recognition
 ```
 
@@ -194,7 +194,7 @@ Hybrid PIN Entry → SHA-256 Verify → Face Scan → LBPH Predict → Dashboard
 
 ## 👩‍💻 Developed By
 
-**Yoga Lakshmi**
-Department of Computer Science
+**Yoga Lakshmi M**
+Department of Computer Applications
 Tamil Nadu, India
 
