@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Register — NexVault Bank</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    /* ── INPUT WRAPPER WITH ICON ── */
+    .input-wrap {
+      position: relative;
+    }
+    .input-wrap input {
+      padding-left: 40px;
+    }
+    .input-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 1rem; pointer-events: none; opacity: 0.5;
+      transition: opacity 0.2s;
+    }
+    .input-wrap input:focus ~ .input-icon,
+    .input-wrap input:not(:placeholder-shown) ~ .input-icon { opacity: 0.9; }
+
+    /* Input valid/invalid states */
+    .input-wrap input.valid   { border-color: rgba(34,211,165,0.5); }
+    .input-wrap input.invalid { border-color: rgba(244,63,94,0.5); }
+    .input-wrap input.valid:focus   { box-shadow: 0 0 0 3px rgba(34,211,165,0.12); }
+    .input-wrap input.invalid:focus { box-shadow: 0 0 0 3px rgba(244,63,94,0.12); }
+
+    /* Field error message */
+    .field-err {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem; color: #fb7185;
+      margin-top: 5px; display: none;
+      padding-left: 4px; letter-spacing: 0.3px;
+    }
+    .field-err.show { display: block; }
+
+    /* Prefix badge (+91) */
+    .phone-wrap { display: flex; gap: 0; }
+    .phone-prefix {
+      background: var(--surface3, #12202e);
+      border: 1px solid var(--border, rgba(255,255,255,0.06));
+      border-right: none;
+      border-radius: 9px 0 0 9px;
+      padding: 12px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem; color: var(--sky, #38bdf8);
+      font-weight: 600; white-space: nowrap;
+      display: flex; align-items: center;
+    }
+    .phone-wrap input {
+      border-radius: 0 9px 9px 0;
+      flex: 1;
+    }
+
+    /* Section divider */
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem; color: var(--text-dim, #2d4a60);
+      letter-spacing: 3px; text-transform: uppercase;
+      margin: 22px 0 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-label::after {
+      content: ''; flex: 1; height: 1px;
+      background: var(--border, rgba(255,255,255,0.06));
+    }
+
+    /* DOB field — match other inputs, no white shade */
+    input[type="date"] {
+      width: 100%;
+      background: #0d1620 !important;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 9px;
+      padding: 12px 14px;
+      color: #e2eaf4 !important;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      color-scheme: dark;
+      -webkit-text-fill-color: #e2eaf4;
+    }
+    input[type="date"]:focus {
+      border-color: rgba(56,189,248,0.5);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.10);
+      background: #12202e !important;
+    }
+    input[type="date"]::-webkit-datetime-edit { color: #e2eaf4; }
+    input[type="date"]::-webkit-datetime-edit-fields-wrapper { background: transparent; }
+    input[type="date"]::-webkit-datetime-edit-text { color: #2d4a60; }
+    input[type="date"]::-webkit-datetime-edit-month-field,
+    input[type="date"]::-webkit-datetime-edit-day-field,
+    input[type="date"]::-webkit-datetime-edit-year-field { color: #e2eaf4; }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.6) sepia(1) saturate(2) hue-rotate(180deg);
+      cursor: pointer; opacity: 0.7;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+    /* Select dropdowns */
+    select {
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2338bdf8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px !important;
+    }
+    select:focus {
+      border-color: rgba(56,189,248,0.5) !important;
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.10);
+    }
+    select option { background: #0d1620; color: #e2eaf4; }
+
+    /* PIN eye toggle — monkey style */
+    .pin-wrap { position: relative; }
+    .pin-wrap input { padding-right: 48px; letter-spacing: 6px; }
+    .monkey-eye {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      cursor: pointer; font-size: 1.3rem;
+      user-select: none; transition: transform 0.2s;
+      line-height: 1;
+    }
+    .monkey-eye:hover { transform: translateY(-50%) scale(1.15); }
+
+    /* Camera */
+    .cam-container {
+      position: relative; width: 100%; max-width: 340px;
+      margin: 0 auto 16px; border-radius: 14px; overflow: hidden;
+      background: #020b18; border: 1px solid rgba(56,189,248,0.12);
+      aspect-ratio: 4/3;
+    }
+    #camVideo  { width:100%; height:100%; object-fit:cover; display:block; }
+    #camCanvas { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+    #camStatus {
+      position:absolute; bottom:0; left:0; right:0;
+      background:linear-gradient(transparent,rgba(2,8,20,0.9));
+      padding:20px 12px 10px;
+      font-family:'JetBrains Mono',monospace; font-size:0.65rem;
+      letter-spacing:2px; text-align:center; color:#38bdf8;
+      text-transform:uppercase; pointer-events:none;
+    }
+    .scan-line {
+      position:absolute; left:0; right:0; height:1.5px;
+      background:linear-gradient(90deg,transparent,#38bdf8,transparent);
+      box-shadow:0 0 8px #38bdf8;
+      animation:scanLine 2.5s ease-in-out infinite; pointer-events:none; z-index:4;
+    }
+    @keyframes scanLine { 0%{top:0%;opacity:0}5%{opacity:1}95%{opacity:1}100%{top:100%;opacity:0} }
+    .cc { position:absolute; width:18px; height:18px; border-color:#38bdf8; border-style:solid; pointer-events:none; z-index:5; opacity:0.8; }
+    .tl{top:8px;left:8px;border-width:2px 0 0 2px;border-radius:3px 0 0 0;}
+    .tr{top:8px;right:8px;border-width:2px 2px 0 0;border-radius:0 3px 0 0;}
+    .bl{bottom:8px;left:8px;border-width:0 0 2px 2px;border-radius:0 0 0 3px;}
+    .br{bottom:8px;right:8px;border-width:0 2px 2px 0;border-radius:0 0 3px 0;}
+
+    /* Capture dots */
+    .cap-dots { display:flex; justify-content:center; gap:8px; margin-bottom:14px; }
+    .cap-dot  {
+      width:10px; height:10px; border-radius:50%;
+      border:1.5px solid var(--text-dim,#2d4a60); background:transparent; transition:all 0.25s;
+    }
+    .cap-dot.done { background:var(--green,#22d3a5); border-color:var(--green,#22d3a5); box-shadow:0 0 8px rgba(34,211,165,0.5); }
+
+    /* Steps */
+    .steps { display:flex; align-items:center; margin-bottom:28px; }
+    .step-item { display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text-dim,#2d4a60); letter-spacing:1.5px; text-transform:uppercase; }
+    .step-item.active { color:var(--sky,#38bdf8); }
+    .step-item.done   { color:var(--green,#22d3a5); }
+    .step-num { width:24px; height:24px; border-radius:50%; border:1px solid currentColor; display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:700; flex-shrink:0; }
+    .step-item.active .step-num { background:rgba(56,189,248,0.1); }
+    .step-item.done   .step-num { background:rgba(34,211,165,0.1); }
+    .step-line { flex:1; height:1px; background:var(--border,rgba(255,255,255,0.06)); margin:0 8px; }
+    .step-line.done { background:rgba(34,211,165,0.3); }
+
+    /* Strength bar */
+    .strength-bar-wrap { margin-top:6px; height:3px; background:rgba(255,255,255,0.06); border-radius:2px; overflow:hidden; }
+    .strength-bar { height:100%; width:0; border-radius:2px; transition:all 0.3s; }
+  </style>
+</head>
+<body>
+<div class="center-wrap">
+<div class="medium">
+
+  <!-- Brand -->
+  <div class="brand">
+    <a href="/" class="brand-mark" style="text-decoration:none;">
+      <svg viewBox="0 0 40 40" width="42" height="42" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="blg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#22d3a5"/></linearGradient></defs>
+        <rect width="40" height="40" rx="10" fill="url(#blg)"/>
+        <rect x="8"  y="18" width="4" height="12" rx="1" fill="white" opacity="0.95"/>
+        <rect x="14" y="18" width="4" height="12" rx="1" fill="white" opacity="0.95"/>
+        <rect x="20" y="18" width="4" height="12" rx="1" fill="white" opacity="0.95"/>
+        <rect x="26" y="18" width="4" height="12" rx="1" fill="white" opacity="0.95"/>
+        <rect x="7"  y="29" width="26" height="3" rx="1.5" fill="white"/>
+        <rect x="7"  y="15" width="26" height="3" rx="1.5" fill="white"/>
+        <polygon points="20,7 7,15 33,15" fill="white" opacity="0.9"/>
+      </svg>
+    </a>
+    <div>
+      <div class="brand-text">NexVault Bank</div>
+      <div class="brand-sub">New Account Registration</div>
+    </div>
+  </div>
+
+  <div class="card">
+
+    <!-- Step indicator -->
+    <div class="steps">
+      <div class="step-item active" id="si1"><div class="step-num">1</div><span>Details</span></div>
+      <div class="step-line" id="sl1"></div>
+      <div class="step-item" id="si2"><div class="step-num">2</div><span>Face</span></div>
+      <div class="step-line" id="sl2"></div>
+      <div class="step-item" id="si3"><div class="step-num">3</div><span>PIN</span></div>
+    </div>
+
+    {% if error %}<div class="alert alert-err">⚠ {{ error }}</div>{% endif %}
+
+    <!-- ══════════════ STEP 1 — PERSONAL DETAILS ══════════════ -->
+    <div id="step1">
+      <div class="card-title">Personal Information</div>
+      <div class="card-sub">All fields are required.</div>
+
+      <!-- Name row -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name</label>
+          <div class="input-wrap">
+            <input type="text" id="f_firstname" placeholder="First name" autocomplete="off"/>
+            <span class="input-icon">👤</span>
+          </div>
+          <div class="field-err" id="err_firstname">Only alphabets allowed</div>
+        </div>
+        <div class="form-group">
+          <label>Last Name</label>
+          <div class="input-wrap">
+            <input type="text" id="f_lastname" placeholder="Last name" autocomplete="off"/>
+            <span class="input-icon">👤</span>
+          </div>
+          <div class="field-err" id="err_lastname">Only alphabets allowed</div>
+        </div>
+      </div>
+
+      <!-- DOB + Age -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date of Birth</label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <input type="text" id="f_dob_d" placeholder="DD" maxlength="2"
+                   inputmode="numeric"
+                   style="flex:1; background:#0d1620; border:1px solid rgba(255,255,255,0.06); border-radius:9px; padding:12px 8px; color:#e2eaf4; font-family:'JetBrains Mono',monospace; font-size:0.9rem; outline:none; text-align:center; transition:border-color 0.2s;"/>
+            <select id="f_dob_m"
+                    style="flex:1.4; background:#0d1620; border:1px solid rgba(255,255,255,0.06); border-radius:9px; padding:12px 8px; color:#e2eaf4; font-family:'JetBrains Mono',monospace; font-size:0.82rem; outline:none; cursor:pointer; transition:border-color 0.2s;">
+              <option value="">Month</option>
+              <option value="01">January</option><option value="02">February</option>
+              <option value="03">March</option><option value="04">April</option>
+              <option value="05">May</option><option value="06">June</option>
+              <option value="07">July</option><option value="08">August</option>
+              <option value="09">September</option><option value="10">October</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+            <input type="text" id="f_dob_y" placeholder="YYYY" maxlength="4"
+                   inputmode="numeric"
+                   style="flex:1.4; background:#0d1620; border:1px solid rgba(255,255,255,0.06); border-radius:9px; padding:12px 8px; color:#e2eaf4; font-family:'JetBrains Mono',monospace; font-size:0.9rem; outline:none; text-align:center; transition:border-color 0.2s;"/>
+          </div>
+          <div class="field-err" id="err_dob">Date of birth is required</div>
+        </div>
+        <div class="form-group">
+          <label>Age</label>
+          <div class="input-wrap">
+            <input type="text" id="f_age" placeholder="Auto" readonly
+                   style="opacity:0.6; cursor:not-allowed;"/>
+            <span class="input-icon">🎂</span>
+          </div>
+          <div class="field-err" id="err_age">Must be 18+</div>
+        </div>
+      </div>
+
+      <!-- Phone -->
+      <div class="form-group">
+        <label>Phone Number</label>
+        <div class="phone-wrap">
+          <div class="phone-prefix">🇮🇳 +91</div>
+          <input type="tel" id="f_phone" placeholder="XXXXXXXXXX" maxlength="10" autocomplete="off"/>
+        </div>
+        <div class="field-err" id="err_phone">Must start with 6/7/8/9 and be 10 digits</div>
+      </div>
+
+      <div class="section-label">Address</div>
+
+      <div class="form-group">
+        <label>Address</label>
+        <div class="input-wrap">
+          <input type="text" id="f_address" placeholder="House no, Street, Area" autocomplete="off"/>
+          <span class="input-icon">🏠</span>
+        </div>
+        <div class="field-err" id="err_address">Address is required</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>City</label>
+          <div class="input-wrap">
+            <input type="text" id="f_city" placeholder="City" autocomplete="off"/>
+            <span class="input-icon">🏙️</span>
+          </div>
+          <div class="field-err" id="err_city">City is required</div>
+        </div>
+        <div class="form-group">
+          <label>State</label>
+          <div class="input-wrap">
+            <input type="text" id="f_state" placeholder="State" autocomplete="off"/>
+            <span class="input-icon">📍</span>
+          </div>
+          <div class="field-err" id="err_state">State is required</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Pincode</label>
+        <div class="input-wrap">
+          <input type="text" id="f_pincode" placeholder="6-digit pincode" maxlength="6" autocomplete="off"/>
+          <span class="input-icon">📮</span>
+        </div>
+        <div class="field-err" id="err_pincode">Must be 6 digits</div>
+      </div>
+
+      <div class="section-label">Account</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Account Number</label>
+          <div class="input-wrap">
+            <input type="text" id="f_acc" placeholder="Account number" maxlength="16" autocomplete="off"/>
+            <span class="input-icon">🏦</span>
+          </div>
+          <div class="field-err" id="err_acc">Account number is required</div>
+        </div>
+        <div class="form-group">
+          <label>Initial Balance (min ₹500)</label>
+          <div class="input-wrap">
+            <input type="number" id="f_balance" placeholder="500" min="500" autocomplete="off"/>
+            <span class="input-icon">₹</span>
+          </div>
+          <div class="field-err" id="err_balance">Minimum ₹500 required</div>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-primary" onclick="goStep2()">Continue →</button>
+    </div>
+
+    <!-- ══════════════ STEP 2 — FACE CAPTURE ══════════════ -->
+    <div id="step2" style="display:none;">
+      <div class="card-title">Face Registration</div>
+      <div class="card-sub">Look straight at the camera. We'll capture 3 photos.</div>
+
+      <div class="cap-dots">
+        <div class="cap-dot" id="cd1"></div>
+        <div class="cap-dot" id="cd2"></div>
+        <div class="cap-dot" id="cd3"></div>
+      </div>
+
+      <div class="cam-container">
+        <video id="camVideo" autoplay playsinline muted></video>
+        <canvas id="camCanvas"></canvas>
+        <div class="scan-line"></div>
+        <div class="cc tl"></div><div class="cc tr"></div>
+        <div class="cc bl"></div><div class="cc br"></div>
+        <div id="camStatus">INITIALIZING...</div>
+      </div>
+
+      <button type="button" class="btn btn-primary" id="capBtn" onclick="capturePhoto()" disabled>📸 Capture Photo</button>
+      <button type="button" class="btn btn-ghost" style="margin-top:10px;" onclick="backStep(1)">← Back</button>
+    </div>
+
+    <!-- ══════════════ STEP 3 — PIN ══════════════ -->
+    <div id="step3" style="display:none;">
+      <div class="card-title">Set Your PIN</div>
+      <div class="card-sub">Choose a 4-digit PIN. Numbers only.</div>
+
+      <div class="form-group">
+        <label>PIN</label>
+        <div class="pin-wrap">
+          <input type="password" id="f_pin" placeholder="••••" maxlength="4"
+                 inputmode="numeric" autocomplete="new-password"
+                 style="letter-spacing:8px; font-size:1.2rem; text-align:center; padding-right:48px;"/>
+          <span class="monkey-eye" id="monkeyPin" onclick="togglePin('f_pin','monkeyPin')" title="Show/Hide PIN">🙈</span>
+        </div>
+        <div class="strength-bar-wrap"><div class="strength-bar" id="pinStrength"></div></div>
+        <div class="field-err" id="err_pin">Must be exactly 4 digits</div>
+      </div>
+
+      <div class="form-group">
+        <label>Confirm PIN</label>
+        <div class="pin-wrap">
+          <input type="password" id="f_pin2" placeholder="••••" maxlength="4"
+                 inputmode="numeric" autocomplete="new-password"
+                 style="letter-spacing:8px; font-size:1.2rem; text-align:center; padding-right:48px;"/>
+          <span class="monkey-eye" id="monkeyPin2" onclick="togglePin('f_pin2','monkeyPin2')" title="Show/Hide PIN">🙈</span>
+        </div>
+        <div class="field-err" id="err_pin2">PINs do not match</div>
+      </div>
+
+      <button type="button" class="btn btn-primary" onclick="submitForm()" id="submitBtn">
+        ✓ Complete Registration
+      </button>
+      <button type="button" class="btn btn-ghost" style="margin-top:10px;" onclick="backStep(2)">← Back</button>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+  <div class="link-center">Already have an account? <a href="/login">Login →</a></div>
+
+</div>
+</div>
+
+<!-- Hidden form for actual submission -->
+<form id="realForm" method="POST" action="/register" style="display:none;">
+  <input type="hidden" name="firstname"  id="hFirstname"/>
+  <input type="hidden" name="lastname"   id="hLastname"/>
+  <input type="hidden" name="dob"        id="hDob"/>
+  <input type="hidden" name="age"        id="hAge"/>
+  <input type="hidden" name="phone"      id="hPhone"/>
+  <input type="hidden" name="address"    id="hAddress"/>
+  <input type="hidden" name="city"       id="hCity"/>
+  <input type="hidden" name="state"      id="hState"/>
+  <input type="hidden" name="pincode"    id="hPincode"/>
+  <input type="hidden" name="account_number" id="hAcc"/>
+  <input type="hidden" name="balance"    id="hBalance"/>
+  <input type="hidden" name="pin"        id="hPin"/>
+  <input type="hidden" name="face_image" id="hFace"/>
+</form>
+
+<script>
+/* ══════════════════════════════════════
+   VALIDATION HELPERS
+══════════════════════════════════════ */
+function showErr(id, msg) {
+  const el = document.getElementById('err_' + id);
+  if (msg) el.textContent = msg;
+  el.classList.add('show');
+  const inp = document.getElementById('f_' + id);
+  if (inp) { inp.classList.remove('valid'); inp.classList.add('invalid'); }
+}
+function clearErr(id) {
+  document.getElementById('err_' + id)?.classList.remove('show');
+  const inp = document.getElementById('f_' + id);
+  if (inp) { inp.classList.remove('invalid'); inp.classList.add('valid'); }
+}
+
+/* ── DOB — Day & Year text input, Month select ── */
+document.getElementById('f_dob_d').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g,'');
+  if (this.value.length === 2) document.getElementById('f_dob_m').focus();
+  calcAge();
+});
+document.getElementById('f_dob_y').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g,'');
+  calcAge();
+});
+
+function calcAge() {
+  const d = document.getElementById('f_dob_d').value;
+  const m = document.getElementById('f_dob_m').value;
+  const y = document.getElementById('f_dob_y').value;
+  if (!d || !m || !y || y.length < 4) return;
+  const dob   = new Date(`${y}-${m}-${String(d).padStart(2,'0')}`);
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const mo = today.getMonth() - dob.getMonth();
+  if (mo < 0 || (mo === 0 && today.getDate() < dob.getDate())) age--;
+  document.getElementById('f_age').value = age > 0 ? age : '';
+  if (age >= 18) { clearErr('dob'); clearErr('age'); }
+  else showErr('age', 'Must be 18 years or older');
+}
+document.getElementById('f_dob_m').addEventListener('change', calcAge);
+
+function getDobValue() {
+  const d = document.getElementById('f_dob_d').value;
+  const m = document.getElementById('f_dob_m').value;
+  const y = document.getElementById('f_dob_y').value;
+  if (!d || !m || !y) return '';
+  return `${y}-${m}-${String(d).padStart(2,'0')}`;
+}
+
+/* Name fields — alphabets only */
+['firstname','lastname'].forEach(id => {
+  document.getElementById('f_' + id).addEventListener('input', function() {
+    this.value = this.value.replace(/[^a-zA-Z\s]/g, '');
+    if (this.value.trim().length >= 2) clearErr(id);
+    else showErr(id, 'Only alphabets, min 2 characters');
+  });
+});
+
+/* Phone — 10 digits, starts with 6789 */
+document.getElementById('f_phone').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '');
+  if (this.value.length === 10 && /^[6789]/.test(this.value)) clearErr('phone');
+  else showErr('phone', 'Must start with 6/7/8/9 and be exactly 10 digits');
+});
+
+/* Pincode — 6 digits */
+document.getElementById('f_pincode').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '');
+  if (this.value.length === 6) clearErr('pincode');
+  else showErr('pincode', 'Must be exactly 6 digits');
+});
+
+/* Balance — min 500 */
+document.getElementById('f_balance').addEventListener('input', function() {
+  const v = parseFloat(this.value);
+  if (v >= 500) clearErr('balance');
+  else showErr('balance', 'Minimum initial balance is ₹500');
+});
+
+/* PIN — 4 digits only, no text */
+document.getElementById('f_pin').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '');
+  const len = this.value.length;
+  const bar = document.getElementById('pinStrength');
+  bar.style.width = (len / 4 * 100) + '%';
+  bar.style.background = len < 2 ? '#f43f5e' : len < 4 ? '#f59e0b' : '#22d3a5';
+  if (len === 4) clearErr('pin');
+  else showErr('pin', 'Must be exactly 4 digits');
+  // re-check confirm
+  const p2 = document.getElementById('f_pin2').value;
+  if (p2.length === 4) {
+    if (p2 === this.value) clearErr('pin2');
+    else showErr('pin2', 'PINs do not match');
+  }
+});
+document.getElementById('f_pin2').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '');
+  const pin = document.getElementById('f_pin').value;
+  if (this.value.length === 4) {
+    if (this.value === pin) clearErr('pin2');
+    else showErr('pin2', 'PINs do not match');
+  }
+});
+
+/* ── MONKEY EYE TOGGLE ── */
+function togglePin(inputId, monkeyId) {
+  const inp    = document.getElementById(inputId);
+  const monkey = document.getElementById(monkeyId);
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    monkey.textContent = '🐵';
+    monkey.style.transform = 'translateY(-50%) scale(1.2)';
+    setTimeout(() => monkey.style.transform = 'translateY(-50%) scale(1)', 200);
+  } else {
+    inp.type = 'password';
+    monkey.textContent = '🙈';
+  }
+}
+
+/* ══════════════════════════════════════
+   STEP 1 → STEP 2 VALIDATION
+══════════════════════════════════════ */
+function goStep2() {
+  let ok = true;
+
+  const fn = document.getElementById('f_firstname').value.trim();
+  const ln = document.getElementById('f_lastname').value.trim();
+  const dob = getDobValue();
+  const age = parseInt(document.getElementById('f_age').value);
+  const phone = document.getElementById('f_phone').value;
+  const addr = document.getElementById('f_address').value.trim();
+  const city = document.getElementById('f_city').value.trim();
+  const state = document.getElementById('f_state').value.trim();
+  const pin6 = document.getElementById('f_pincode').value;
+  const acc = document.getElementById('f_acc').value.trim();
+  const bal = parseFloat(document.getElementById('f_balance').value);
+
+  if (!fn || !/^[a-zA-Z\s]+$/.test(fn)) { showErr('firstname','First name required, alphabets only'); ok=false; }
+  else clearErr('firstname');
+
+  if (!ln || !/^[a-zA-Z\s]+$/.test(ln)) { showErr('lastname','Last name required, alphabets only'); ok=false; }
+  else clearErr('lastname');
+
+  if (!dob) { showErr('dob','Date of birth is required'); ok=false; }
+  else clearErr('dob');
+
+  if (!age || age < 18) { showErr('age','Must be 18 years or older'); ok=false; }
+  else clearErr('age');
+
+  if (!/^[6789]\d{9}$/.test(phone)) { showErr('phone','Must start with 6/7/8/9 and be 10 digits'); ok=false; }
+  else clearErr('phone');
+
+  if (!addr) { showErr('address','Address is required'); ok=false; }
+  else clearErr('address');
+
+  if (!city) { showErr('city','City is required'); ok=false; }
+  else clearErr('city');
+
+  if (!state) { showErr('state','State is required'); ok=false; }
+  else clearErr('state');
+
+  if (!/^\d{6}$/.test(pin6)) { showErr('pincode','Must be exactly 6 digits'); ok=false; }
+  else clearErr('pincode');
+
+  if (!acc) { showErr('acc','Account number is required'); ok=false; }
+  else clearErr('acc');
+
+  if (!bal || bal < 500) { showErr('balance','Minimum ₹500 required'); ok=false; }
+  else clearErr('balance');
+
+  if (!ok) return;
+
+  // Proceed to face step
+  document.getElementById('step1').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
+  document.getElementById('si1').className = 'step-item done';
+  document.getElementById('sl1').className = 'step-line done';
+  document.getElementById('si2').className = 'step-item active';
+  startCamera();
+}
+
+/* ══════════════════════════════════════
+   CAMERA
+══════════════════════════════════════ */
+let camStream = null, capturedFaces = [], rafId = null;
+
+async function startCamera() {
+  const status = document.getElementById('camStatus');
+  const capBtn = document.getElementById('capBtn');
+  status.textContent = 'STARTING CAMERA...';
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { width:{ideal:640}, height:{ideal:480}, facingMode:'user' }
+    });
+    const video = document.getElementById('camVideo');
+    video.srcObject = camStream;
+    video.onloadedmetadata = () => {
+      video.play();
+      const c = document.getElementById('camCanvas');
+      c.width = video.videoWidth || 640;
+      c.height = video.videoHeight || 480;
+      status.textContent = 'READY — CAPTURE PHOTO';
+      capBtn.disabled = false;
+      drawGuide();
+    };
+  } catch(e) {
+    status.textContent = 'CAMERA ERROR: ' + e.message;
+  }
+}
+
+function drawGuide() {
+  if (!camStream) return;
+  const c = document.getElementById('camCanvas');
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  const cx = c.width/2, cy = c.height/2;
+  ctx.strokeStyle = 'rgba(56,189,248,0.7)';
+  ctx.lineWidth = 2; ctx.setLineDash([8,5]);
+  ctx.beginPath(); ctx.ellipse(cx, cy, 90, 115, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(56,189,248,0.6)';
+  ctx.font = '11px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('ALIGN YOUR FACE', cx, cy + 135);
+  rafId = requestAnimationFrame(drawGuide);
+}
+
+function capturePhoto() {
+  const video  = document.getElementById('camVideo');
+  const status = document.getElementById('camStatus');
+  const capBtn = document.getElementById('capBtn');
+  if (!camStream || !video.videoWidth) return;
+
+  const snap = document.createElement('canvas');
+  snap.width = video.videoWidth; snap.height = video.videoHeight;
+  snap.getContext('2d').drawImage(video, 0, 0);
+  capturedFaces.push(snap.toDataURL('image/jpeg', 0.92));
+
+  document.getElementById('cd' + capturedFaces.length).classList.add('done');
+  status.textContent = `CAPTURED ${capturedFaces.length}/3`;
+
+  if (capturedFaces.length >= 3) {
+    capBtn.disabled = true;
+    status.textContent = '✓ FACE CAPTURED';
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    // Stop camera, go to PIN step
+    setTimeout(() => {
+      stopCamera();
+      document.getElementById('step2').style.display = 'none';
+      document.getElementById('step3').style.display = 'block';
+      document.getElementById('si2').className = 'step-item done';
+      document.getElementById('sl2').className = 'step-line done';
+      document.getElementById('si3').className = 'step-item active';
+    }, 600);
+  }
+}
+
+function stopCamera() {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+}
+
+function backStep(to) {
+  if (to === 1) {
+    stopCamera();
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('si1').className = 'step-item active';
+    document.getElementById('sl1').className = 'step-line';
+    document.getElementById('si2').className = 'step-item';
+  } else if (to === 2) {
+    document.getElementById('step3').style.display = 'none';
+    document.getElementById('step2').style.display = 'block';
+    document.getElementById('si2').className = 'step-item active';
+    document.getElementById('sl2').className = 'step-line';
+    document.getElementById('si3').className = 'step-item';
+    capturedFaces = [];
+    ['cd1','cd2','cd3'].forEach(id => document.getElementById(id).classList.remove('done'));
+    startCamera();
+  }
+}
+
+/* ══════════════════════════════════════
+   SUBMIT → go to Aadhaar page
+══════════════════════════════════════ */
+function submitForm() {
+  const pin  = document.getElementById('f_pin').value;
+  const pin2 = document.getElementById('f_pin2').value;
+
+  if (!/^\d{4}$/.test(pin))  { showErr('pin','Must be exactly 4 digits');   return; }
+  if (pin !== pin2)           { showErr('pin2','PINs do not match');          return; }
+
+  if (capturedFaces.length < 1) {
+    alert('Please complete face capture first.');
+    return;
+  }
+
+  // Fill hidden form
+  document.getElementById('hFirstname').value = document.getElementById('f_firstname').value.trim();
+  document.getElementById('hLastname').value  = document.getElementById('f_lastname').value.trim();
+  document.getElementById('hDob').value       = getDobValue();
+  document.getElementById('hAge').value       = document.getElementById('f_age').value;
+  document.getElementById('hPhone').value     = '+91' + document.getElementById('f_phone').value;
+  document.getElementById('hAddress').value   = document.getElementById('f_address').value.trim();
+  document.getElementById('hCity').value      = document.getElementById('f_city').value.trim();
+  document.getElementById('hState').value     = document.getElementById('f_state').value.trim();
+  document.getElementById('hPincode').value   = document.getElementById('f_pincode').value;
+  document.getElementById('hAcc').value       = document.getElementById('f_acc').value.trim();
+  document.getElementById('hBalance').value   = document.getElementById('f_balance').value;
+  document.getElementById('hPin').value       = pin;
+  document.getElementById('hFace').value      = capturedFaces[0];
+
+  // Save to session storage for aadhaar page to use
+  sessionStorage.setItem('reg_data', JSON.stringify({
+    firstname: document.getElementById('f_firstname').value.trim(),
+    lastname:  document.getElementById('f_lastname').value.trim(),
+    dob:       getDobValue(),
+    age:       document.getElementById('f_age').value,
+    phone:     '+91' + document.getElementById('f_phone').value,
+    address:   document.getElementById('f_address').value.trim(),
+    city:      document.getElementById('f_city').value.trim(),
+    state:     document.getElementById('f_state').value.trim(),
+    pincode:   document.getElementById('f_pincode').value,
+    account_number: document.getElementById('f_acc').value.trim(),
+    balance:   document.getElementById('f_balance').value,
+    pin:       pin,
+    face_image: capturedFaces[0]
+  }));
+
+  window.location.href = '/register/aadhaar';
+}
+
+/* end */
+</script>
+</body>
+</html>

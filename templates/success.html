@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Account Created — NexVault Bank</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── CHECK ANIMATION ── */
+    .check-wrap { text-align:center; margin-bottom:22px; }
+    .check-svg  { width:72px; height:72px; }
+    .c-ring-bg { fill:none; stroke:rgba(34,211,165,0.12); stroke-width:2.5; }
+    .c-ring {
+      fill:none; stroke:#22d3a5; stroke-width:2.5;
+      stroke-dasharray:200; stroke-dashoffset:200;
+      stroke-linecap:round; transform-origin:center; transform:rotate(-90deg);
+      animation:cRing 0.55s ease forwards 0.1s;
+    }
+    .c-tick {
+      fill:none; stroke:#22d3a5; stroke-width:3.5;
+      stroke-linecap:round; stroke-linejoin:round;
+      stroke-dasharray:42; stroke-dashoffset:42;
+      animation:cTick 0.3s ease forwards 0.6s;
+    }
+    @keyframes cRing { to { stroke-dashoffset:0; } }
+    @keyframes cTick { to { stroke-dashoffset:0; } }
+
+    .ok-title {
+      font-family:'Unbounded',sans-serif;
+      font-size:1.25rem; font-weight:900;
+      color:#e8f0f8; margin-bottom:6px;
+    }
+    .ok-sub {
+      font-family:'Space Grotesk',sans-serif;
+      font-size:0.92rem; color:#7a9ab8;
+    }
+
+    /* ── BANK STATEMENT ── */
+    .statement {
+      background:#0a1628;
+      border:1px solid rgba(56,189,248,0.1);
+      border-radius:18px; overflow:hidden;
+      margin-bottom:20px;
+    }
+
+    /* Header */
+    .stmt-header {
+      background:linear-gradient(135deg,#0c3a60,#0a2845);
+      padding:20px 24px;
+      display:flex; justify-content:space-between; align-items:center;
+      border-bottom:1px solid rgba(56,189,248,0.12);
+    }
+    .stmt-bank-name {
+      font-family:'Unbounded',sans-serif;
+      font-size:0.95rem; font-weight:900; color:#fff;
+    }
+    .stmt-bank-sub {
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.65rem; color:rgba(56,189,248,0.65);
+      letter-spacing:2px; margin-top:3px; text-transform:uppercase;
+    }
+    .stmt-kyc {
+      display:flex; align-items:center; gap:6px;
+      background:rgba(34,211,165,0.1);
+      border:1px solid rgba(34,211,165,0.22);
+      border-radius:100px; padding:5px 12px;
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.65rem; color:#22d3a5;
+      letter-spacing:1px; text-transform:uppercase;
+    }
+    .kyc-dot { width:6px; height:6px; border-radius:50%; background:#22d3a5; }
+
+    /* Account strip */
+    .stmt-acc-strip {
+      background:rgba(56,189,248,0.04);
+      border-bottom:1px solid rgba(255,255,255,0.04);
+      padding:14px 24px;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .acc-lbl {
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.65rem; color:#3a5870;
+      letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;
+    }
+    .acc-num {
+      font-family:'JetBrains Mono',monospace;
+      font-size:1.05rem; font-weight:600; color:#38bdf8;
+      letter-spacing:3px;
+    }
+    .acc-since {
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.68rem; color:#3a5870;
+      text-align:right;
+    }
+    .acc-since span { display:block; color:#7a9ab8; margin-top:3px; font-size:0.75rem; }
+
+    /* Balance row */
+    .stmt-balance {
+      padding:18px 24px;
+      border-bottom:1px solid rgba(255,255,255,0.04);
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .bal-lbl {
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.65rem; color:#3a5870;
+      letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;
+    }
+    .bal-val {
+      font-family:'Unbounded',sans-serif;
+      font-size:1.8rem; font-weight:900; color:#22d3a5;
+      text-shadow:0 0 20px rgba(34,211,165,0.25);
+    }
+    .bal-val .sym { font-size:1rem; color:#3a5870; margin-right:3px; }
+    .face-badge {
+      display:flex; align-items:center; gap:7px;
+      background:rgba(56,189,248,0.07);
+      border:1px solid rgba(56,189,248,0.18);
+      border-radius:10px; padding:10px 14px;
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.68rem; color:#38bdf8;
+      letter-spacing:1px; text-transform:uppercase;
+    }
+
+    /* Detail rows */
+    .stmt-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:13px 24px;
+      border-bottom:1px solid rgba(255,255,255,0.03);
+    }
+    .stmt-row:last-child { border-bottom:none; }
+    .sr-key {
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.68rem; color:#3a5870;
+      letter-spacing:1.5px; text-transform:uppercase;
+    }
+    .sr-val {
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.85rem; color:#c8d8e8;
+      font-weight:500; text-align:right; max-width:60%;
+    }
+    .sr-val.sky  { color:#38bdf8; }
+    .sr-val.mute { color:#3a5870; letter-spacing:4px; font-size:0.9rem; }
+    .sr-val.green{ color:#22d3a5; font-weight:600; }
+
+    /* ── ACTION BUTTONS ── */
+    .btn-row {
+      display:grid; grid-template-columns:1fr 1fr; gap:12px;
+      margin-bottom:14px;
+    }
+    .btn-row-3 {
+      display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;
+    }
+
+    .act-btn {
+      border-radius:12px; padding:16px 12px;
+      cursor:pointer; transition:all 0.22s; text-decoration:none;
+      display:flex; flex-direction:column;
+      align-items:center; gap:8px;
+      border:1px solid rgba(255,255,255,0.06);
+    }
+    .act-btn:hover { transform:translateY(-3px); text-decoration:none; }
+
+    .btn-home  { background:#0f1e30; }
+    .btn-home:hover { border-color:rgba(56,189,248,0.22); box-shadow:0 8px 22px rgba(56,189,248,0.1); }
+
+    .btn-login {
+      background:linear-gradient(145deg,#0c3a5e,#0ea5e9);
+      border-color:rgba(56,189,248,0.3);
+      box-shadow:0 4px 16px rgba(56,189,248,0.2);
+    }
+    .btn-login:hover { box-shadow:0 10px 28px rgba(56,189,248,0.38); }
+
+    .btn-download {
+      background:linear-gradient(145deg,#064e3b,#22d3a5);
+      border-color:rgba(34,211,165,0.3);
+      box-shadow:0 4px 16px rgba(34,211,165,0.18);
+    }
+    .btn-download:hover { box-shadow:0 10px 28px rgba(34,211,165,0.32); }
+
+    .btn-print {
+      background:linear-gradient(145deg,#451a03,#f59e0b);
+      border-color:rgba(245,158,11,0.3);
+      box-shadow:0 4px 16px rgba(245,158,11,0.15);
+    }
+    .btn-print:hover { box-shadow:0 10px 28px rgba(245,158,11,0.28); }
+
+    .act-ico {
+      width:38px; height:38px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.1rem; transition:transform 0.2s;
+    }
+    .act-btn:hover .act-ico { transform:scale(1.12); }
+    .btn-home     .act-ico { background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.12); }
+    .btn-login    .act-ico { background:rgba(255,255,255,0.15); }
+    .btn-download .act-ico { background:rgba(255,255,255,0.15); }
+    .btn-print    .act-ico { background:rgba(255,255,255,0.15); }
+
+    .act-lbl {
+      font-family:'Unbounded',sans-serif;
+      font-size:0.68rem; font-weight:700; text-align:center; color:#fff;
+    }
+    .btn-home .act-lbl { color:#e8f0f8; }
+
+    /* ── PRINT STYLES ── */
+    @media print {
+      body { background:#fff !important; color:#000 !important; }
+      .no-print { display:none !important; }
+      .statement { border:1px solid #ccc !important; background:#fff !important; border-radius:8px !important; }
+      .stmt-header { background:#1e3a5f !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .stmt-bank-name { color:#fff !important; }
+      .stmt-bank-sub  { color:#aad4f5 !important; }
+      .stmt-kyc { background:rgba(34,211,165,0.15) !important; border-color:rgba(34,211,165,0.3) !important; }
+      .sr-val { color:#222 !important; }
+      .sr-key  { color:#555 !important; }
+      .bal-val { color:#0d9488 !important; text-shadow:none !important; }
+      .acc-num { color:#0369a1 !important; }
+      .check-wrap, .ok-title, .ok-sub { display:none; }
+    }
+  </style>
+</head>
+<body>
+<div class="center-wrap">
+<div class="medium">
+
+  <!-- Brand (no-print on screen, show in print) -->
+  <div class="brand no-print">
+    <a href="/" style="text-decoration:none;">
+      <svg viewBox="0 0 40 40" width="44" height="44" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#22d3a5"/></linearGradient></defs>
+        <rect width="40" height="40" rx="10" fill="url(#g)"/>
+        <rect x="8"  y="18" width="4" height="12" rx="1" fill="white"/>
+        <rect x="14" y="18" width="4" height="12" rx="1" fill="white"/>
+        <rect x="20" y="18" width="4" height="12" rx="1" fill="white"/>
+        <rect x="26" y="18" width="4" height="12" rx="1" fill="white"/>
+        <rect x="7"  y="29" width="26" height="3" rx="1.5" fill="white"/>
+        <rect x="7"  y="15" width="26" height="3" rx="1.5" fill="white"/>
+        <polygon points="20,7 7,15 33,15" fill="white" opacity="0.9"/>
+      </svg>
+    </a>
+    <div>
+      <div class="brand-text">NexVault Bank</div>
+      <div class="brand-sub">New Account</div>
+    </div>
+  </div>
+
+  <!-- Check animation -->
+  <div class="check-wrap no-print">
+    <svg class="check-svg" viewBox="0 0 72 72">
+      <circle class="c-ring-bg" cx="36" cy="36" r="30"/>
+      <circle class="c-ring"    cx="36" cy="36" r="30"/>
+      <polyline class="c-tick"  points="20,36 30,47 52,22"/>
+    </svg>
+    <div class="ok-title">Account Created Successfully</div>
+    <div class="ok-sub">Your NexVault account is now active and ready.</div>
+  </div>
+
+  <!-- PRINTABLE AREA -->
+  <div id="printArea">
+    <div class="statement">
+
+      <!-- Header -->
+      <div class="stmt-header">
+        <div>
+          <div class="stmt-bank-name">NexVault Bank</div>
+          <div class="stmt-bank-sub">Account Opening Statement</div>
+        </div>
+        <div class="stmt-kyc">
+          <div class="kyc-dot"></div>
+          KYC Verified
+        </div>
+      </div>
+
+      <!-- Account number -->
+      <div class="stmt-acc-strip">
+        <div>
+          <div class="acc-lbl">Account Number</div>
+          <div class="acc-num" id="pAcc">—</div>
+        </div>
+        <div class="acc-since">
+          <div class="acc-lbl">Member Since</div>
+          <span id="pSince">—</span>
+        </div>
+      </div>
+
+      <!-- Balance -->
+      <div class="stmt-balance">
+        <div>
+          <div class="bal-lbl">Opening Balance</div>
+          <div class="bal-val"><span class="sym">₹</span><span id="pBal">0.00</span></div>
+        </div>
+        <div class="face-badge">👁 Face ID Registered</div>
+      </div>
+
+      <!-- Details -->
+      <div class="stmt-row">
+        <div class="sr-key">Full Name</div>
+        <div class="sr-val" id="pName">—</div>
+      </div>
+      <div class="stmt-row">
+        <div class="sr-key">Date of Birth</div>
+        <div class="sr-val sky" id="pDob">—</div>
+      </div>
+      <div class="stmt-row">
+        <div class="sr-key">Age</div>
+        <div class="sr-val" id="pAge">—</div>
+      </div>
+      <div class="stmt-row">
+        <div class="sr-key">Phone</div>
+        <div class="sr-val sky" id="pPhone">—</div>
+      </div>
+      <div class="stmt-row">
+        <div class="sr-key">Address</div>
+        <div class="sr-val" id="pAddress" style="font-size:0.78rem;line-height:1.5;">—</div>
+      </div>
+      <div class="stmt-row">
+        <div class="sr-key">City / State</div>
+        <div class="sr-val" id="pCity">—</div>
+      </div>
+      <div class="stmt-row">
+        <div class="sr-key">Pincode</div>
+        <div class="sr-val" id="pPincode">—</div>
+      </div>
+      <div class="stmt-row">
+        <div class="sr-key">Aadhaar</div>
+        <div class="sr-val mute" id="pAadhar">XXXX XXXX XXXX</div>
+      </div>
+      <div class="stmt-row">
+        <div class="sr-key">Security PIN</div>
+        <div class="sr-val mute">• • • •</div>
+      </div>
+      <div class="stmt-row">
+        <div class="sr-key">Face Recognition</div>
+        <div class="sr-val green">✓ Enrolled</div>
+      </div>
+
+    </div>
+  </div><!-- /#printArea -->
+
+  <!-- 2x2 Buttons -->
+  <div class="btn-row no-print">
+    <a href="/" class="act-btn btn-home">
+      <div class="act-ico">🏠</div>
+      <div class="act-lbl">Back to Home</div>
+    </a>
+    <a href="/login" class="act-btn btn-login">
+      <div class="act-ico">🔓</div>
+      <div class="act-lbl">Login Now</div>
+    </a>
+  </div>
+  <div class="btn-row-3 no-print">
+    <div class="act-btn btn-download" onclick="downloadPDF()">
+      <div class="act-ico">⬇️</div>
+      <div class="act-lbl">Download</div>
+    </div>
+    <div class="act-btn btn-print" onclick="printPage()">
+      <div class="act-ico">🖨️</div>
+      <div class="act-lbl">Print</div>
+    </div>
+    <div class="act-btn btn-home" onclick="shareDetails()">
+      <div class="act-ico">📤</div>
+      <div class="act-lbl">Share</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+/* ── LOAD DATA ── */
+const d = JSON.parse(sessionStorage.getItem('reg_success') || '{}');
+if (!d.firstname) { window.location.href = '/'; }
+
+document.getElementById('pName').textContent    = d.firstname + ' ' + d.lastname;
+document.getElementById('pAcc').textContent     = d.account_number || '—';
+document.getElementById('pDob').textContent     = d.dob || '—';
+document.getElementById('pAge').textContent     = (d.age || '—') + ' years';
+document.getElementById('pPhone').textContent   = d.phone || '—';
+document.getElementById('pAddress').textContent = [d.address, d.city, d.state].filter(Boolean).join(', ');
+document.getElementById('pCity').textContent    = (d.city||'—') + ', ' + (d.state||'—');
+document.getElementById('pPincode').textContent = d.pincode || '—';
+document.getElementById('pSince').textContent   = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+if (d.aadhar_number)
+  document.getElementById('pAadhar').textContent = 'XXXX XXXX ' + d.aadhar_number.slice(-4);
+
+/* Balance count-up */
+const target = parseFloat(d.balance) || 0;
+let cur = 0;
+const t = setInterval(() => {
+  cur = Math.min(cur + target/50, target);
+  document.getElementById('pBal').textContent =
+    cur.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  if (cur >= target) clearInterval(t);
+}, 20);
+
+setTimeout(() => sessionStorage.removeItem('reg_success'), 10000);
+
+/* ── PRINT ── */
+function printPage() {
+  window.print();
+}
+
+/* ── DOWNLOAD PDF ── */
+async function downloadPDF() {
+  const btn = event.currentTarget;
+  const origHTML = btn.innerHTML;
+  btn.innerHTML = '<div class="act-ico" style="font-size:0.9rem;">⏳</div><div class="act-lbl">Generating...</div>';
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const el = document.getElementById('printArea');
+
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#0a1628',
+      scale: 2,
+      useCORS: true,
+      logging: false
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW  = pageW - 20;
+    const imgH  = (canvas.height * imgW) / canvas.width;
+    const y     = imgH < pageH ? (pageH - imgH) / 2 : 10;
+
+    pdf.setFillColor(10, 22, 40);
+    pdf.rect(0, 0, pageW, pageH, 'F');
+    pdf.addImage(imgData, 'PNG', 10, y, imgW, imgH);
+
+    const name = (d.firstname || 'account').toLowerCase().replace(/\s/g,'_');
+    pdf.save(`nexvault_${name}_account.pdf`);
+  } catch(e) {
+    alert('Download failed. Please use Print instead.');
+  }
+
+  btn.innerHTML = origHTML;
+}
+
+/* ── SHARE ── */
+function shareDetails() {
+  const text = `NexVault Bank — Account Details\nName: ${d.firstname} ${d.lastname}\nAccount: ${d.account_number}\nBalance: ₹${d.balance}`;
+  if (navigator.share) {
+    navigator.share({ title: 'NexVault Account', text });
+  } else {
+    navigator.clipboard.writeText(text).then(() => alert('Details copied to clipboard!'));
+  }
+}
+</script>
+</body>
+</html>

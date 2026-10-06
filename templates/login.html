@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Login — NexVault Bank</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    [data-theme="light"] {
+      --black:    #f0f4f8;
+      --surface:  rgba(255,255,255,0.95);
+      --surface2: #e8eef4;
+      --border:   rgba(14,165,233,0.15);
+      --text:     #0f172a;
+      --text-mid: #334155;
+      --text-dim: #94a3b8;
+    }
+    [data-theme="light"] body { background: #f0f4f8; }
+    [data-theme="light"] .card { background: rgba(255,255,255,0.97); }
+
+    @keyframes scanAnim {
+      0%{top:0%;opacity:0}5%{opacity:1}95%{opacity:1}100%{top:100%;opacity:0}
+    }
+    .cam-container {
+      position:relative;width:100%;max-width:360px;margin:0 auto 16px;
+      border-radius:16px;overflow:hidden;background:#0d1e2e;
+      border:1px solid rgba(255,255,255,0.07);aspect-ratio:4/3;
+    }
+    #camVideo{width:100%;height:100%;object-fit:cover;display:block;border-radius:16px;}
+    #camCanvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;border-radius:16px;}
+    #camStatus{position:absolute;bottom:0;left:0;right:0;
+      background:linear-gradient(transparent,rgba(8,11,15,0.88));
+      padding:20px 12px 10px;font-family:'DM Mono',monospace;font-size:0.7rem;
+      letter-spacing:2px;text-align:center;text-transform:uppercase;pointer-events:none;color:#63d2ff;}
+    .scan-line{position:absolute;left:0;right:0;height:2px;
+      background:linear-gradient(90deg,transparent,#63d2ff,transparent);
+      box-shadow:0 0 8px #63d2ff;animation:scanAnim 2.5s ease-in-out infinite;pointer-events:none;z-index:4;}
+    .cc{position:absolute;width:20px;height:20px;border-color:#63d2ff;border-style:solid;pointer-events:none;z-index:5;}
+    .tl{top:8px;left:8px;border-width:2px 0 0 2px;border-radius:4px 0 0 0;}
+    .tr{top:8px;right:8px;border-width:2px 2px 0 0;border-radius:0 4px 0 0;}
+    .bl{bottom:8px;left:8px;border-width:0 0 2px 2px;border-radius:0 0 0 4px;}
+    .br{bottom:8px;right:8px;border-width:0 2px 2px 0;border-radius:0 0 4px 0;}
+
+    .pin-board-wrap {
+      position: relative;
+      width: 300px;
+      margin: 0 auto 12px;
+      cursor: pointer;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    #pinBoardImg { width:100%; display:block; }
+    #pinOverlay {
+      position:absolute; top:0; left:0;
+      width:100%; height:100%;
+      pointer-events:none;
+    }
+
+    .page-theme-btn {
+      position:fixed; top:16px; right:16px; z-index:200;
+      width:36px; height:36px; border-radius:50%;
+      background:rgba(10,22,40,0.85);
+      border:1px solid rgba(56,189,248,0.15);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; font-size:1rem;
+      backdrop-filter:blur(10px); transition:all 0.2s;
+    }
+    .page-theme-btn:hover { border-color:rgba(56,189,248,0.4); transform:rotate(20deg); }
+    [data-theme="light"] .page-theme-btn { background:rgba(255,255,255,0.85); }
+  </style>
+</head>
+<body>
+<div class="page-theme-btn" id="themeBtn">🌙</div>
+<div class="center-wrap">
+<div class="narrow">
+
+  <div class="brand">
+    <a href="/" style="text-decoration:none;">
+      <svg viewBox="0 0 40 40" width="42" height="42" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="nlg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#22d3a5"/></linearGradient></defs>
+        <rect width="40" height="40" rx="10" fill="url(#nlg)"/>
+        <rect x="8"  y="18" width="4" height="12" rx="1" fill="white"/>
+        <rect x="14" y="18" width="4" height="12" rx="1" fill="white"/>
+        <rect x="20" y="18" width="4" height="12" rx="1" fill="white"/>
+        <rect x="26" y="18" width="4" height="12" rx="1" fill="white"/>
+        <rect x="7"  y="29" width="26" height="3" rx="1.5" fill="white"/>
+        <rect x="7"  y="15" width="26" height="3" rx="1.5" fill="white"/>
+        <polygon points="20,7 7,15 33,15" fill="white" opacity="0.9"/>
+      </svg>
+    </a>
+    <div><div class="brand-text">NexVault Bank</div><div class="brand-sub">Secure Login</div></div>
+  </div>
+
+  <div class="card">
+    <div class="steps">
+      <div class="step-item active" id="si1"><div class="step-num">1</div><span>PIN</span></div>
+      <div class="step-line" id="sl1"></div>
+      <div class="step-item" id="si2"><div class="step-num">2</div><span>Face</span></div>
+    </div>
+
+    {% if error %}<div class="alert alert-err">⚠ {{ error }}</div>{% endif %}
+
+    <div id="step1">
+      <div class="card-title">Enter Your PIN</div>
+      <div class="card-sub">Enter your 4-digit PIN to continue.</div>
+
+      <div class="pin-dots" style="margin-bottom:14px;">
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+        <div class="pin-dot" id="pd4"></div>
+      </div>
+
+      <div class="pin-board-wrap" id="pinWrap">
+        <img id="pinBoardImg"
+             src="data:image/png;base64,{{ pin_img }}"
+             alt="PIN Pad"
+             draggable="false"/>
+        <canvas id="pinOverlay"></canvas>
+      </div>
+
+      <!-- DEL + CLEAR -->
+      <div style="display:flex;gap:8px;width:300px;margin:0 auto 10px;">
+        <button onclick="delDigit()" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(99,210,255,0.2);background:rgba(14,25,38,0.9);font-family:'Space Grotesk',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;color:#ff5470;transition:all 0.15s;">⌫ DEL</button>
+        <button onclick="clearAll()" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(99,210,255,0.2);background:rgba(14,25,38,0.9);font-family:'Space Grotesk',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;color:#f5a623;transition:all 0.15s;">✕ CLEAR</button>
+      </div>
+
+      <div class="alert alert-err" id="pinErr" style="display:none;margin-top:8px;"></div>
+    </div>
+
+    <div id="step2" style="display:none;">
+      <div class="card-title">Face Verification</div>
+      <div class="card-sub">PIN verified ✓ — Show your face to complete login.</div>
+      <div class="cam-container">
+        <video id="camVideo" autoplay playsinline muted></video>
+        <canvas id="camCanvas"></canvas>
+        <div class="scan-line"></div>
+        <div class="cc tl"></div><div class="cc tr"></div>
+        <div class="cc bl"></div><div class="cc br"></div>
+        <div id="camStatus">STARTING CAMERA...</div>
+      </div>
+      <div style="display:flex;justify-content:center;gap:10px;margin-bottom:8px;">
+        <div id="at1" style="width:12px;height:12px;border-radius:50%;border:1.5px solid #3d5a70;transition:all 0.2s;"></div>
+        <div id="at2" style="width:12px;height:12px;border-radius:50%;border:1.5px solid #3d5a70;transition:all 0.2s;"></div>
+        <div id="at3" style="width:12px;height:12px;border-radius:50%;border:1.5px solid #3d5a70;transition:all 0.2s;"></div>
+      </div>
+      <div id="attLabel" style="text-align:center;font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--text-dim);margin-bottom:16px;">3 attempts remaining</div>
+      <button type="button" class="btn btn-primary" id="scanBtn" onclick="doFaceScan()">👁 Scan My Face</button>
+      <button type="button" class="btn btn-ghost" style="margin-top:10px;" onclick="window.location.href='/login'">← Re-enter PIN</button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="link-center">New here? <a href="/register">Create an Account →</a></div>
+</div>
+</div>
+
+<div class="modal-backdrop" id="failModal">
+  <div class="modal"><div class="modal-icon">🚫</div>
+    <div class="modal-title" style="color:var(--rose)">Authentication Failed</div>
+    <div class="modal-msg">Face verification failed 3 times.<br>Please visit your nearest branch.<br><br><strong style="color:var(--amber)">Transaction Blocked</strong></div>
+    <div class="modal-btns"><a href="/" class="btn btn-ghost">← Home</a></div>
+  </div>
+</div>
+<div class="modal-backdrop" id="successModal">
+  <div class="modal">
+    <div class="modal-icon">✅</div>
+    <div class="modal-title" style="color:var(--emerald)">Identity Verified!</div>
+    <div id="welcomeName" style="font-family:'Unbounded',sans-serif;font-size:1.1rem;font-weight:900;color:#e2eaf4;margin:10px 0 6px;text-align:center;"></div>
+    <div class="modal-msg" id="welcomeMsg" style="color:#64849e;">Taking you to your account...</div>
+  </div>
+</div>
+
+<script>
+const real_order = {{ real_order | tojson | safe }};
+const BOARD_W = 600;
+const BOARD_H = 800;
+const CELL    = 200;
+let pin = '';
+
+const img  = document.getElementById('pinBoardImg');
+const wrap = document.getElementById('pinWrap');
+const ov   = document.getElementById('pinOverlay');
+
+img.onload = function() {
+  ov.width  = img.naturalWidth;
+  ov.height = img.naturalHeight;
+};
+
+wrap.addEventListener('click', function(e) {
+  if (pin.length >= 4) return;
+  const rect   = img.getBoundingClientRect();
+  const scaleX = BOARD_W / rect.width;
+  const scaleY = BOARD_H / rect.height;
+  const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top)  * scaleY;
+  const col = Math.floor(x / CELL);
+  const row = Math.floor(y / CELL);
+  const idx = row * 3 + col;
+  if (row === 3 && col !== 1) return;
+  if (idx < 0 || idx >= real_order.length) return;
+  const clicked = real_order[idx];
+  const ovCtx = ov.getContext('2d');
+  ov.width = img.naturalWidth; ov.height = img.naturalHeight;
+  ovCtx.fillStyle = 'rgba(99,210,255,0.25)';
+  ovCtx.fillRect(col*CELL, row*CELL, CELL, CELL);
+  setTimeout(() => ovCtx.clearRect(0,0,ov.width,ov.height), 200);
+  pin += String(clicked);
+  updateDots();
+  if (pin.length === 4) submitPIN();
+});
+
+function updateDots() {
+  for (let i=1;i<=4;i++)
+    document.getElementById('pd'+i).className='pin-dot'+(i<=pin.length?' on':'');
+}
+
+function delDigit() {
+  if (pin.length === 0) return;
+  pin = pin.slice(0, -1);
+  updateDots();
+}
+
+function clearAll() {
+  pin = '';
+  updateDots();
+}
+
+async function submitPIN() {
+  if (pin.length < 4) return;
+  const errEl = document.getElementById('pinErr');
+  errEl.style.display = 'none';
+  const toSend = pin; pin = ''; updateDots();
+  const fd = new FormData(); fd.append('pin', toSend);
+  try {
+    const res  = await fetch('/login/verify-pin', {method:'POST', body:fd});
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('step1').style.display='none';
+      document.getElementById('step2').style.display='block';
+      document.getElementById('si1').className='step-item done';
+      document.getElementById('sl1').className='step-line done';
+      document.getElementById('si2').className='step-item active';
+      startCamera();
+    } else {
+      errEl.textContent='⚠ Wrong PIN — try again.';
+      errEl.style.display='flex';
+      setTimeout(()=>errEl.style.display='none', 2500);
+    }
+  } catch(e) { errEl.textContent='⚠ Network error.'; errEl.style.display='flex'; }
+}
+
+let camStream=null, rafId=null, attempts=0;
+async function startCamera(){
+  const video=document.getElementById('camVideo'),sb=document.getElementById('camStatus'),btn=document.getElementById('scanBtn');
+  btn.disabled=true; sb.textContent='STARTING...'; sb.style.color='#63d2ff';
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:640},height:{ideal:480},facingMode:'user'}});
+    video.srcObject=camStream;
+    video.onloadedmetadata=function(){
+      video.play();
+      const c=document.getElementById('camCanvas');
+      c.width=video.videoWidth||640; c.height=video.videoHeight||480;
+      sb.textContent='READY — Click Scan'; sb.style.color='#2ecc8f';
+      btn.disabled=false; drawCamGuide();
+    };
+  }catch(e){sb.textContent='ERROR: '+e.message;sb.style.color='#ff5470';btn.disabled=false;}
+}
+function stopCamera(){
+  if(rafId){cancelAnimationFrame(rafId);rafId=null;}
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+}
+function drawCamGuide(){
+  if(!camStream)return;
+  const c=document.getElementById('camCanvas'),c2=c.getContext('2d');
+  c2.clearRect(0,0,c.width,c.height);
+  const cx=c.width/2,cy=c.height/2;
+  c2.strokeStyle='rgba(99,210,255,0.75)';c2.lineWidth=2.5;c2.setLineDash([10,5]);
+  c2.beginPath();c2.ellipse(cx,cy,100,130,0,0,Math.PI*2);c2.stroke();c2.setLineDash([]);
+  c2.fillStyle='rgba(99,210,255,0.65)';c2.font='12px monospace';c2.textAlign='center';
+  c2.fillText('ALIGN FACE HERE',cx,cy+152);
+  rafId=requestAnimationFrame(drawCamGuide);
+}
+async function doFaceScan(){
+  const video=document.getElementById('camVideo'),sb=document.getElementById('camStatus'),btn=document.getElementById('scanBtn');
+  if(!camStream||!video.videoWidth){alert('Camera not ready.');return;}
+  btn.disabled=true;sb.textContent='SCANNING...';sb.style.color='#f5a623';
+  const snap=document.createElement('canvas');
+  snap.width=video.videoWidth;snap.height=video.videoHeight;
+  snap.getContext('2d').drawImage(video,0,0);
+  const fd=new FormData();fd.append('face_image',snap.toDataURL('image/jpeg',0.92));
+  try{
+    const res=await fetch('/login/face',{method:'POST',body:fd});
+    const data=await res.json();
+    if(data.ok){
+      stopCamera();sb.textContent='✓ CONFIRMED';sb.style.color='#2ecc8f';
+      document.getElementById('welcomeName').textContent='Welcome back, '+data.name+'!';
+      document.getElementById('welcomeMsg').textContent='Taking you to your account...';
+      document.getElementById('successModal').classList.add('show');
+      setTimeout(()=>window.location.href='/atm',2000);
+    }else if(data.blocked){
+      stopCamera();document.getElementById('failModal').classList.add('show');
+    }else{
+      attempts++;
+      const dot=document.getElementById('at'+attempts);
+      if(dot){dot.style.background='#ff5470';dot.style.borderColor='#ff5470';}
+      document.getElementById('attLabel').textContent=(3-attempts)+' attempts remaining';
+      sb.textContent='NO MATCH';sb.style.color='#ff5470';
+      setTimeout(()=>{if(camStream){sb.textContent='READY — Click Scan';sb.style.color='#2ecc8f';btn.disabled=false;drawCamGuide();}},1500);
+    }
+  }catch(e){sb.textContent='ERROR';sb.style.color='#ff5470';btn.disabled=false;}
+}
+
+/* Theme toggle */
+const _btn  = document.getElementById('themeBtn');
+const _html = document.documentElement;
+const _saved = localStorage.getItem('nv-theme') || 'dark';
+_html.setAttribute('data-theme', _saved);
+_btn.textContent = _saved === 'dark' ? '🌙' : '☀️';
+_btn.addEventListener('click', () => {
+  const next = _html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  _html.setAttribute('data-theme', next);
+  _btn.textContent = next === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem('nv-theme', next);
+});
+</script>
+</body>
+</html>

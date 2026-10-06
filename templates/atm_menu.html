@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Dashboard — NexVault Bank</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    [data-theme="dark"] {
+      --bg:       #020b18;
+      --surface:  rgba(10,22,40,0.85);
+      --card-bg:  rgba(6,14,28,0.95);
+      --border:   rgba(56,189,248,0.1);
+      --border2:  rgba(56,189,248,0.06);
+      --text:     #e2eaf4;
+      --text-mid: #64849e;
+      --text-dim: #2d4a60;
+      --sky:      #38bdf8;
+      --green:    #22d3a5;
+      --red:      #f43f5e;
+      --amber:    #f59e0b;
+    }
+    [data-theme="light"] {
+      --bg:       #f0f4f8;
+      --surface:  rgba(255,255,255,0.9);
+      --card-bg:  rgba(255,255,255,0.97);
+      --border:   rgba(14,165,233,0.18);
+      --border2:  rgba(14,165,233,0.08);
+      --text:     #0f172a;
+      --text-mid: #334155;
+      --text-dim: #94a3b8;
+      --sky:      #0369a1;
+      --green:    #0d9488;
+      --red:      #e11d48;
+      --amber:    #d97706;
+    }
+
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    [data-theme="dark"] body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse at 10% 50%, rgba(56,189,248,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 90% 10%, rgba(34,211,165,0.04) 0%, transparent 50%);
+    }
+
+    /* ── TOP NAV ── */
+    .dash-nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 32px;
+      background: rgba(2,8,20,0.88);
+      border-bottom: 1px solid var(--border2);
+      backdrop-filter: blur(18px);
+    }
+    [data-theme="light"] .dash-nav { background: rgba(240,244,248,0.9); }
+
+    .nav-left { display:flex; align-items:center; gap:10px; }
+    .nav-logo {
+      width: 32px; height: 32px;
+      filter: drop-shadow(0 0 8px rgba(56,189,248,0.4));
+    }
+    .nav-brand-name {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.78rem; font-weight: 900; color: var(--text);
+    }
+
+    /* Welcome greeting */
+    .nav-welcome {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.82rem; color: var(--text-mid);
+    }
+    .nav-welcome strong {
+      color: var(--sky); font-weight: 700;
+    }
+
+    .nav-right { display:flex; align-items:center; gap:10px; }
+
+    .acc-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem; color: var(--text-dim);
+      letter-spacing: 1px; text-align: right;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 8px; padding: 5px 10px;
+    }
+    .acc-chip span { display:block; color: var(--text-mid); letter-spacing: 2px; margin-top:1px; }
+
+    .theme-btn {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .theme-btn:hover { border-color: var(--border); transform: rotate(18deg); }
+
+    .logout-btn {
+      background: rgba(244,63,94,0.1);
+      border: 1px solid rgba(244,63,94,0.2);
+      color: #f43f5e;
+      border-radius: 8px; padding: 6px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: all 0.2s; letter-spacing: 0.5px;
+    }
+    .logout-btn:hover {
+      background: rgba(244,63,94,0.18);
+      border-color: rgba(244,63,94,0.4);
+      text-decoration: none; color: #f43f5e;
+    }
+
+    /* ── MAIN CONTENT ── */
+    .dash-main {
+      position: relative; z-index: 1;
+      max-width: 760px; margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    /* ── BALANCE CARD ── */
+    .balance-card {
+      background: linear-gradient(135deg, #0c3558 0%, #0a2540 60%, #062038 100%);
+      border: 1px solid rgba(56,189,248,0.18);
+      border-radius: 20px; padding: 28px 28px 22px;
+      margin-bottom: 24px;
+      position: relative; overflow: hidden;
+      transition: box-shadow 0.4s;
+    }
+    .balance-card::before {
+      content: '';
+      position: absolute; top: -60px; right: -60px;
+      width: 200px; height: 200px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(56,189,248,0.08) 0%, transparent 70%);
+    }
+    .balance-card::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(56,189,248,0.3), transparent);
+    }
+    [data-theme="light"] .balance-card {
+      background: linear-gradient(135deg, #0369a1, #0284c7);
+      border-color: rgba(14,165,233,0.3);
+    }
+
+    .bal-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+    .bal-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem; letter-spacing: 3px;
+      text-transform: uppercase; color: rgba(56,189,248,0.7);
+      margin-bottom: 8px;
+    }
+    .bal-amount {
+      font-family: 'Unbounded', sans-serif;
+      font-size: clamp(2rem, 5vw, 2.8rem);
+      font-weight: 900; color: #fff; line-height: 1;
+    }
+    .bal-amount .sym { font-size: 1rem; color: rgba(255,255,255,0.5); margin-right: 4px; vertical-align: top; padding-top: 8px; display: inline-block; }
+
+    .active-badge {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(34,211,165,0.12);
+      border: 1px solid rgba(34,211,165,0.25);
+      border-radius: 100px; padding: 4px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.55rem; color: #22d3a5;
+      letter-spacing: 1.5px; text-transform: uppercase;
+    }
+    .active-dot { width:5px; height:5px; border-radius:50%; background:#22d3a5; box-shadow:0 0 6px #22d3a5; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .bal-meta {
+      display: flex; gap: 24px; flex-wrap: wrap;
+    }
+    .bal-meta-item {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem; color: rgba(255,255,255,0.4);
+      letter-spacing: 0.5px;
+    }
+    .bal-meta-item span { display:block; color: rgba(255,255,255,0.75); margin-top:3px; font-size: 0.65rem; }
+
+    /* ── ACTION GRID ── */
+    .action-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 14px; margin-bottom: 20px;
+    }
+
+    .action-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border2);
+      border-radius: 16px; padding: 24px 20px;
+      cursor: pointer; transition: all 0.22s;
+      position: relative; overflow: hidden;
+    }
+    .action-btn::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(56,189,248,0.4), transparent);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .action-btn:hover { transform: translateY(-4px); }
+    .action-btn:hover::before { opacity: 1; }
+
+    .action-btn.wd:hover  { border-color: rgba(244,63,94,0.3);   box-shadow: 0 10px 30px rgba(244,63,94,0.12); }
+    .action-btn.dep:hover { border-color: rgba(34,211,165,0.3);  box-shadow: 0 10px 30px rgba(34,211,165,0.12); }
+    .action-btn.bal:hover { border-color: rgba(245,158,11,0.3);  box-shadow: 0 10px 30px rgba(245,158,11,0.12); }
+    .action-btn.hist:hover{ border-color: rgba(56,189,248,0.3);  box-shadow: 0 10px 30px rgba(56,189,248,0.12); }
+    .action-btn.active    { border-color: rgba(56,189,248,0.25); background: rgba(56,189,248,0.04); }
+
+    .action-icon {
+      font-size: 1.6rem; margin-bottom: 10px;
+      display: block; transition: transform 0.22s;
+    }
+    .action-btn:hover .action-icon { transform: scale(1.15); }
+
+    .action-label {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.8rem; font-weight: 700;
+      color: var(--text); margin-bottom: 3px;
+    }
+    .action-desc {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem; color: var(--text-dim);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── TX PANELS ── */
+    .tx-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border2);
+      border-radius: 16px; padding: 0;
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.35s ease, padding 0.2s ease, border-color 0.2s;
+      margin-bottom: 0;
+    }
+    .tx-panel.open {
+      max-height: 520px; padding: 22px;
+      border-color: var(--border);
+      margin-bottom: 14px;
+    }
+    .tx-title {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.82rem; font-weight: 700;
+      color: var(--text); margin-bottom: 16px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .tx-close {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.75rem; color: var(--text-mid);
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .tx-close:hover { background: rgba(244,63,94,0.15); color: var(--red); }
+
+    .quick-btns {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px;
+    }
+    .quick-btn {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 8px; padding: 6px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem; color: var(--sky);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .quick-btn:hover {
+      border-color: var(--border);
+      background: rgba(56,189,248,0.08);
+    }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem; color: var(--text-dim);
+      letter-spacing: 2px; text-transform: uppercase;
+      display: block; margin-bottom: 6px;
+    }
+    .form-group input {
+      width: 100%;
+      background: rgba(2,8,20,0.8);
+      border: 1px solid var(--border2);
+      border-radius: 9px; padding: 11px 14px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    [data-theme="light"] .form-group input { background: #fff; }
+    .form-group input:focus {
+      border-color: rgba(56,189,248,0.4);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.08);
+    }
+
+    .btn-wd, .btn-dep {
+      width: 100%; padding: 12px;
+      border: none; border-radius: 10px;
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.75rem; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-wd  { background: linear-gradient(135deg,#be123c,#f43f5e); color:#fff; box-shadow:0 4px 16px rgba(244,63,94,0.25); }
+    .btn-dep { background: linear-gradient(135deg,#065f46,#22d3a5); color:#fff; box-shadow:0 4px 16px rgba(34,211,165,0.2); }
+    .btn-wd:hover  { box-shadow: 0 8px 24px rgba(244,63,94,0.38); transform: translateY(-2px); }
+    .btn-dep:hover { box-shadow: 0 8px 24px rgba(34,211,165,0.32); transform: translateY(-2px); }
+
+    .tx-result {
+      margin-top: 12px; padding: 10px 14px;
+      border-radius: 8px; display: none;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+    }
+    .tx-result.ok  { background:rgba(34,211,165,0.1); border:1px solid rgba(34,211,165,0.2); color:#22d3a5; }
+    .tx-result.err { background:rgba(244,63,94,0.1);  border:1px solid rgba(244,63,94,0.2);  color:#f43f5e; }
+
+    /* Balance panel */
+    .bal-panel-inner {
+      text-align: center; padding: 20px 0 8px;
+    }
+    .bal-panel-lbl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem; color: var(--text-dim);
+      letter-spacing: 3px; text-transform: uppercase; margin-bottom: 10px;
+    }
+    .bal-panel-amt {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 2.4rem; font-weight: 900; color: var(--green);
+      text-shadow: 0 0 24px rgba(34,211,165,0.3);
+    }
+    .bal-panel-acc {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; color: var(--text-dim); margin-top: 8px;
+    }
+
+    /* History */
+    .history-list { max-height: 300px; overflow-y: auto; }
+    .history-list::-webkit-scrollbar { width: 3px; }
+    .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .tx-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border2);
+    }
+    .tx-row:last-child { border-bottom: none; }
+    .tx-type {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; font-weight: 600;
+      padding: 3px 8px; border-radius: 5px;
+      letter-spacing: 1px; margin-bottom: 3px;
+      display: inline-block;
+    }
+    .tx-type.dep  { background:rgba(34,211,165,0.1); color:#22d3a5; }
+    .tx-type.with { background:rgba(244,63,94,0.1);  color:#f43f5e; }
+    .tx-time { font-family:'JetBrains Mono',monospace; font-size:0.58rem; color:var(--text-dim); }
+    .tx-amt  { font-family:'Unbounded',sans-serif; font-size:0.82rem; font-weight:700; }
+    .tx-amt.dep  { color:#22d3a5; }
+    .tx-amt.with { color:#f43f5e; }
+
+    @media(max-width:520px){
+      .dash-nav { padding: 10px 14px; }
+      .nav-welcome { display: none; }
+      .dash-main { padding: 18px 12px 40px; }
+      .bal-amount { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="dash-nav">
+  <div class="nav-left">
+    <svg class="nav-logo" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#22d3a5"/></linearGradient></defs>
+      <rect width="40" height="40" rx="10" fill="url(#g)"/>
+      <rect x="8"  y="18" width="4" height="12" rx="1" fill="white"/>
+      <rect x="14" y="18" width="4" height="12" rx="1" fill="white"/>
+      <rect x="20" y="18" width="4" height="12" rx="1" fill="white"/>
+      <rect x="26" y="18" width="4" height="12" rx="1" fill="white"/>
+      <rect x="7"  y="29" width="26" height="3" rx="1.5" fill="white"/>
+      <rect x="7"  y="15" width="26" height="3" rx="1.5" fill="white"/>
+      <polygon points="20,7 7,15 33,15" fill="white" opacity="0.9"/>
+    </svg>
+    <span class="nav-brand-name">NexVault</span>
+  </div>
+
+  <div class="nav-welcome">
+    Welcome back, <strong>{{ user.firstname }} {{ user.lastname }}</strong> 👋
+  </div>
+
+  <div class="nav-right">
+    <div class="acc-chip">
+      ACC<span>{{ user.account_number }}</span>
+    </div>
+    <div class="theme-btn" id="themeBtn">🌙</div>
+    <a href="/logout" class="logout-btn">Logout</a>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="dash-main">
+
+  <!-- Balance Card -->
+  <div class="balance-card" id="balCard">
+    <div class="bal-top">
+      <div>
+        <div class="bal-label">Available Balance</div>
+        <div class="bal-amount">
+          <span class="sym">₹</span><span id="balAmt">{{ "%.2f"|format(user.balance) }}</span>
+        </div>
+      </div>
+      <div class="active-badge">
+        <div class="active-dot"></div>
+        Active
+      </div>
+    </div>
+    <div class="bal-meta">
+      <div class="bal-meta-item">Phone <span>{{ user.phone }}</span></div>
+      <div class="bal-meta-item">Last Login <span id="lastLogin">—</span></div>
+      <div class="bal-meta-item">Status <span style="color:#22d3a5;">● Active</span></div>
+    </div>
+  </div>
+
+  <!-- Action Grid -->
+  <div class="action-grid">
+    <div class="action-btn wd" onclick="openPanel('wdPanel',this)">
+      <span class="action-icon">💸</span>
+      <div class="action-label">Withdraw</div>
+      <div class="action-desc">Take out cash</div>
+    </div>
+    <div class="action-btn dep" onclick="openPanel('depPanel',this)">
+      <span class="action-icon">📥</span>
+      <div class="action-label">Deposit</div>
+      <div class="action-desc">Add funds</div>
+    </div>
+    <div class="action-btn bal" onclick="openPanel('balPanel',this)">
+      <span class="action-icon">💰</span>
+      <div class="action-label">Balance</div>
+      <div class="action-desc">Check balance</div>
+    </div>
+    <div class="action-btn hist" onclick="openPanel('histPanel',this)">
+      <span class="action-icon">📋</span>
+      <div class="action-label">History</div>
+      <div class="action-desc">View transactions</div>
+    </div>
+  </div>
+
+  <!-- Withdraw Panel -->
+  <div class="tx-panel" id="wdPanel">
+    <div class="tx-title">💸 Withdraw Cash <span class="tx-close" onclick="closePanel('wdPanel')">✕</span></div>
+    <div class="quick-btns">
+      <div class="quick-btn" onclick="setAmt('wdAmt',500)">₹500</div>
+      <div class="quick-btn" onclick="setAmt('wdAmt',1000)">₹1,000</div>
+      <div class="quick-btn" onclick="setAmt('wdAmt',2000)">₹2,000</div>
+      <div class="quick-btn" onclick="setAmt('wdAmt',5000)">₹5,000</div>
+      <div class="quick-btn" onclick="setAmt('wdAmt',10000)">₹10,000</div>
+    </div>
+    <div class="form-group">
+      <label>Enter Amount (₹)</label>
+      <input type="number" id="wdAmt" placeholder="0.00" min="1"/>
+    </div>
+    <button class="btn-wd" onclick="doTx('WITHDRAW','wdAmt','wdResult')">💸 Withdraw Now</button>
+    <div class="tx-result" id="wdResult"></div>
+  </div>
+
+  <!-- Deposit Panel -->
+  <div class="tx-panel" id="depPanel">
+    <div class="tx-title">📥 Deposit Funds <span class="tx-close" onclick="closePanel('depPanel')">✕</span></div>
+    <div class="quick-btns">
+      <div class="quick-btn" onclick="setAmt('depAmt',500)">₹500</div>
+      <div class="quick-btn" onclick="setAmt('depAmt',1000)">₹1,000</div>
+      <div class="quick-btn" onclick="setAmt('depAmt',5000)">₹5,000</div>
+      <div class="quick-btn" onclick="setAmt('depAmt',10000)">₹10,000</div>
+      <div class="quick-btn" onclick="setAmt('depAmt',25000)">₹25,000</div>
+    </div>
+    <div class="form-group">
+      <label>Enter Amount (₹)</label>
+      <input type="number" id="depAmt" placeholder="0.00" min="1"/>
+    </div>
+    <button class="btn-dep" onclick="doTx('DEPOSIT','depAmt','depResult')">📥 Deposit Now</button>
+    <div class="tx-result" id="depResult"></div>
+  </div>
+
+  <!-- Balance Panel -->
+  <div class="tx-panel" id="balPanel">
+    <div class="tx-title">💰 Current Balance <span class="tx-close" onclick="closePanel('balPanel')">✕</span></div>
+    <div class="bal-panel-inner">
+      <div class="bal-panel-lbl">Available Balance</div>
+      <div class="bal-panel-amt">₹<span id="balBig">{{ "%.2f"|format(user.balance) }}</span></div>
+      <div class="bal-panel-acc">Account: {{ user.account_number }}</div>
+    </div>
+  </div>
+
+  <!-- History Panel -->
+  <div class="tx-panel" id="histPanel">
+    <div class="tx-title">📋 Transaction History <span class="tx-close" onclick="closePanel('histPanel')">✕</span></div>
+    <div class="history-list" id="histList">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-dim);text-align:center;padding:24px;">Loading...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let activePanel = null, activeBtn = null;
+
+  function openPanel(id, btn) {
+    if (activePanel) {
+      document.getElementById(activePanel).classList.remove('open');
+      if (activeBtn) activeBtn.classList.remove('active');
+    }
+    if (activePanel === id) { activePanel = null; activeBtn = null; return; }
+    document.getElementById(id).classList.add('open');
+    if (btn) btn.classList.add('active');
+    activePanel = id; activeBtn = btn;
+    setTimeout(() => document.getElementById(id).scrollIntoView({behavior:'smooth',block:'nearest'}), 50);
+    if (id === 'histPanel') loadHistory();
+  }
+
+  function closePanel(id) {
+    document.getElementById(id).classList.remove('open');
+    if (activeBtn) activeBtn.classList.remove('active');
+    activePanel = null; activeBtn = null;
+  }
+
+  function setAmt(inputId, val) {
+    document.getElementById(inputId).value = val;
+    document.getElementById(inputId).focus();
+  }
+
+  function showResult(el, msg, type) {
+    el.style.display = 'block';
+    el.className = 'tx-result ' + (type === 'err' ? 'err' : 'ok');
+    el.textContent = msg;
+  }
+
+  async function doTx(type, inputId, resultId) {
+    const amount = parseFloat(document.getElementById(inputId).value);
+    const el = document.getElementById(resultId);
+    if (!amount || amount <= 0) { showResult(el,'⚠ Enter a valid amount','err'); return; }
+    const fd = new FormData();
+    fd.append('type', type); fd.append('amount', amount);
+    const res  = await fetch('/transaction', {method:'POST', body:fd});
+    const data = await res.json();
+    if (data.error) {
+      showResult(el, '⚠ ' + data.error, 'err');
+    } else {
+      const bal = parseFloat(data.balance).toFixed(2);
+      showResult(el, `✅ ${data.message}  ·  New Balance: ₹${bal}`, 'ok');
+      document.getElementById('balAmt').textContent = bal;
+      document.getElementById('balBig').textContent = bal;
+      const bc = document.getElementById('balCard');
+      bc.style.boxShadow = '0 0 40px rgba(34,211,165,0.2)';
+      setTimeout(() => bc.style.boxShadow = '', 1500);
+    }
+  }
+
+  async function loadHistory() {
+    const list = document.getElementById('histList');
+    const res  = await fetch('/transactions/history');
+    const data = await res.json();
+    if (!data.length) {
+      list.innerHTML = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.72rem;color:var(--text-dim);text-align:center;padding:24px;">No transactions yet.</div>';
+      return;
+    }
+    list.innerHTML = data.map(tx => `
+      <div class="tx-row">
+        <div>
+          <div class="tx-type ${tx.type==='DEPOSIT'?'dep':'with'}">${tx.type}</div>
+          <div class="tx-time">${tx.timestamp}</div>
+        </div>
+        <div class="tx-amt ${tx.type==='DEPOSIT'?'dep':'with'}">
+          ${tx.type==='DEPOSIT'?'+':'-'}₹${parseFloat(tx.amount).toFixed(2)}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('lastLogin').textContent =
+    new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+
+  /* Theme toggle */
+  const btn  = document.getElementById('themeBtn');
+  const html = document.documentElement;
+  const saved = localStorage.getItem('nv-theme') || 'dark';
+  html.setAttribute('data-theme', saved);
+  btn.textContent = saved === 'dark' ? '🌙' : '☀️';
+  btn.addEventListener('click', () => {
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    btn.textContent = next === 'dark' ? '🌙' : '☀️';
+    localStorage.setItem('nv-theme', next);
+  });
+</script>
+</body>
+</html>

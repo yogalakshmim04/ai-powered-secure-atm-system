@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>NexVault Bank — Secure ATM</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Unbounded:wght@700;900&display=swap" rel="stylesheet"/>
+  <style>
+    [data-theme="dark"] {
+      --bg:       #020b18;
+      --surface:  rgba(10,22,40,0.82);
+      --card-bg:  rgba(4,12,26,0.92);
+      --nav-bg:   rgba(2,8,20,0.85);
+      --foot-bg:  rgba(2,6,16,0.96);
+      --border2:  rgba(56,189,248,0.07);
+      --text:     #e2eaf4;
+      --text-mid: #64849e;
+      --text-dim: #253a50;
+      --sky:      #38bdf8;
+      --green:    #22d3a5;
+    }
+    [data-theme="light"] {
+      --bg:       #f0f4f8;
+      --surface:  rgba(255,255,255,0.88);
+      --card-bg:  rgba(255,255,255,0.97);
+      --nav-bg:   rgba(240,244,248,0.88);
+      --foot-bg:  rgba(226,234,244,0.97);
+      --border2:  rgba(14,165,233,0.09);
+      --text:     #0f172a;
+      --text-mid: #334155;
+      --text-dim: #94a3b8;
+      --sky:      #0369a1;
+      --green:    #0d9488;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      transition: background 0.3s, color 0.3s;
+      overflow-x: hidden;
+    }
+
+    [data-theme="dark"] body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse at 15% 60%, rgba(56,189,248,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 15%, rgba(34,211,165,0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 100%, rgba(56,189,248,0.04) 0%, transparent 45%);
+    }
+
+    [data-theme="dark"] .stars {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        radial-gradient(1px 1px at 8%  12%, rgba(255,255,255,0.6) 0%,transparent 100%),
+        radial-gradient(1px 1px at 22% 38%, rgba(255,255,255,0.5) 0%,transparent 100%),
+        radial-gradient(1px 1px at 38% 8%,  rgba(255,255,255,0.55) 0%,transparent 100%),
+        radial-gradient(1px 1px at 52% 58%, rgba(255,255,255,0.45) 0%,transparent 100%),
+        radial-gradient(1px 1px at 68% 22%, rgba(255,255,255,0.6) 0%,transparent 100%),
+        radial-gradient(1px 1px at 82% 44%, rgba(255,255,255,0.5) 0%,transparent 100%),
+        radial-gradient(1px 1px at 12% 68%, rgba(255,255,255,0.45) 0%,transparent 100%),
+        radial-gradient(1px 1px at 28% 82%, rgba(255,255,255,0.55) 0%,transparent 100%),
+        radial-gradient(1px 1px at 58% 78%, rgba(255,255,255,0.5) 0%,transparent 100%),
+        radial-gradient(1px 1px at 88% 68%, rgba(255,255,255,0.6) 0%,transparent 100%),
+        radial-gradient(1.5px 1.5px at 33% 18%, rgba(56,189,248,0.7) 0%,transparent 100%),
+        radial-gradient(1.5px 1.5px at 66% 66%, rgba(34,211,165,0.6) 0%,transparent 100%),
+        radial-gradient(2px   2px   at 55% 30%, rgba(56,189,248,0.5) 0%,transparent 100%);
+    }
+    [data-theme="light"] .stars { display: none; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 44px;
+      background: var(--nav-bg);
+      border-bottom: 1px solid var(--border2);
+      backdrop-filter: blur(20px);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 11px; text-decoration: none; }
+    .nav-logo-svg { width: 36px; height: 36px; filter: drop-shadow(0 0 8px rgba(56,189,248,0.5)); }
+    .brand-name { font-family:'Unbounded',sans-serif; font-size:0.9rem; font-weight:900; color:var(--text); }
+    .brand-tag  { font-family:'JetBrains Mono',monospace; font-size:0.5rem; color:var(--text-dim); letter-spacing:2.5px; text-transform:uppercase; margin-top:2px; }
+
+    .nav-right { display:flex; align-items:center; gap:12px; }
+    .nav-clock {
+      display:flex; align-items:center; gap:8px;
+      background:var(--surface); border:1px solid var(--border2);
+      border-radius:8px; padding:6px 14px; backdrop-filter:blur(8px);
+    }
+    .clock-dot {
+      width:6px; height:6px; border-radius:50%;
+      background:var(--green); box-shadow:0 0 6px var(--green);
+      animation:blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
+    .clock-val {
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.82rem; font-weight:500; color:var(--sky); letter-spacing:2px;
+    }
+    .theme-btn {
+      width:36px; height:36px; border-radius:50%;
+      background:var(--surface); border:1px solid var(--border2);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; font-size:1rem; transition:all 0.2s;
+    }
+    .theme-btn:hover { box-shadow:0 0 12px rgba(56,189,248,0.2); transform:rotate(20deg); }
+
+    /* ── MAIN ── */
+    main {
+      flex:1; position:relative; z-index:1;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      text-align:center; padding:60px 20px 50px;
+    }
+    .greeting { font-family:'JetBrains Mono',monospace; font-size:0.7rem; letter-spacing:3px; text-transform:uppercase; color:var(--sky); margin-bottom:5px; }
+    .date-str  { font-family:'JetBrains Mono',monospace; font-size:0.62rem; color:var(--text-mid); letter-spacing:1.5px; margin-bottom:44px; }
+
+    /* ── CENTER LOGO ── */
+    .center-logo {
+      margin: 0 auto 30px;
+      position: relative;
+      width: 100px; height: 100px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .center-logo::before {
+      content: '';
+      position: absolute; inset: -4px; border-radius: 50%;
+      background: conic-gradient(
+        rgba(56,189,248,0.8) 0deg,
+        rgba(34,211,165,0.6) 90deg,
+        rgba(56,189,248,0.1) 180deg,
+        rgba(34,211,165,0.8) 270deg,
+        rgba(56,189,248,0.8) 360deg
+      );
+      animation: spin 6s linear infinite;
+      mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(100% - 2px));
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(100% - 2px));
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .center-logo::after {
+      content: '';
+      position: absolute; inset: -16px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(56,189,248,0.12) 0%, transparent 70%);
+      animation: glowpulse 3s ease-in-out infinite;
+    }
+    @keyframes glowpulse { 0%,100%{opacity:0.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.1)} }
+    .bank-svg {
+      width:90px; height:90px; position:relative; z-index:1;
+      filter: drop-shadow(0 0 14px rgba(56,189,248,0.5));
+    }
+
+    h1 { font-family:'Unbounded',sans-serif; font-size:clamp(1.5rem,4vw,2.5rem); font-weight:900; line-height:1.15; margin-bottom:10px; letter-spacing:-0.5px; }
+    .sub { font-size:0.88rem; color:var(--text-mid); margin-bottom:48px; }
+
+    /* ── ACTION CARDS — both same dark start ── */
+    .actions {
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:20px; max-width:500px; width:100%; margin-bottom:50px;
+    }
+
+    .act-card {
+      border-radius: 20px; padding: 38px 24px;
+      cursor: pointer; text-decoration: none;
+      display: flex; flex-direction: column; align-items: center; gap: 18px;
+      position: relative; overflow: hidden;
+
+      /* DEFAULT: same dark style for both */
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+
+      /* Smooth transition for everything */
+      transition:
+        transform 0.35s cubic-bezier(0.34,1.56,0.64,1),
+        box-shadow 0.35s ease,
+        border-color 0.35s ease,
+        background 0.35s ease;
+    }
+
+    /* Gradient fill overlay — hidden by default, revealed on hover */
+    .act-card::before {
+      content: '';
+      position: absolute; inset: 0; border-radius: 20px;
+      opacity: 0;
+      transition: opacity 0.35s ease;
+      z-index: 0;
+    }
+    .act-card.login-card::before  { background: linear-gradient(145deg, #0c3a5e, #0e5a8a, #0ea5e9); }
+    .act-card.reg-card::before    { background: linear-gradient(145deg, #063a30, #0a5a48, #22d3a5); }
+
+    /* Shine sweep */
+    .act-card::after {
+      content: '';
+      position: absolute; top: 0; left: -120%;
+      width: 55%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+      transition: left 0.55s ease;
+      z-index: 1;
+    }
+
+    /* Card content above overlays */
+    .act-icon, .act-label { position: relative; z-index: 2; }
+
+    /* LOGIN hover */
+    .act-card.login-card:hover {
+      transform: translateY(-7px);
+      border-color: rgba(56,189,248,0.45);
+      box-shadow: 0 18px 50px rgba(56,189,248,0.35), 0 0 0 1px rgba(56,189,248,0.3);
+      text-decoration: none;
+    }
+    .act-card.login-card:hover::before { opacity: 1; }
+    .act-card.login-card:hover::after  { left: 140%; }
+
+    /* REGISTER hover */
+    .act-card.reg-card:hover {
+      transform: translateY(-7px);
+      border-color: rgba(34,211,165,0.45);
+      box-shadow: 0 18px 50px rgba(34,211,165,0.28), 0 0 0 1px rgba(34,211,165,0.3);
+      text-decoration: none;
+    }
+    .act-card.reg-card:hover::before { opacity: 1; }
+    .act-card.reg-card:hover::after  { left: 140%; }
+
+    /* ── ICON AREA ── */
+    .act-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.35s ease, background 0.35s ease;
+    }
+
+    /* Lock icon — animates on hover via JS */
+    .lock-emoji { display:inline-block; transition: transform 0.3s ease; font-style:normal; }
+
+    /* Login icon hover */
+    .act-card.login-card:hover .act-icon {
+      background: rgba(56,189,248,0.15);
+      border-color: rgba(56,189,248,0.4);
+      box-shadow: 0 0 22px rgba(56,189,248,0.4);
+      transform: scale(1.12);
+    }
+
+    /* Register icon — float animation on hover */
+    .act-card.reg-card:hover .act-icon {
+      background: rgba(34,211,165,0.12);
+      border-color: rgba(34,211,165,0.4);
+      box-shadow: 0 0 22px rgba(34,211,165,0.35);
+      animation: floatIcon 1.2s ease-in-out infinite;
+    }
+    @keyframes floatIcon {
+      0%,100% { transform: translateY(0) scale(1.08); }
+      50%      { transform: translateY(-8px) scale(1.12); }
+    }
+
+    .act-label {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.88rem; font-weight: 700;
+      color: var(--text); letter-spacing: 0.5px;
+      transition: color 0.35s;
+    }
+    .act-card.login-card:hover .act-label { color: #fff; }
+    .act-card.reg-card:hover   .act-label { color: #fff; }
+
+    /* ── SECURITY STRIP ── */
+    .sec-strip {
+      display:inline-flex; align-items:center; gap:9px;
+      background:var(--surface); border:1px solid var(--border2);
+      border-radius:100px; padding:8px 22px;
+      font-family:'JetBrains Mono',monospace; font-size:0.58rem;
+      color:var(--text-mid); letter-spacing:1.5px; text-transform:uppercase;
+      backdrop-filter:blur(8px);
+    }
+    .sec-dot {
+      width:6px; height:6px; border-radius:50%;
+      background:var(--green); box-shadow:0 0 8px var(--green);
+      animation:pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    /* ── FOOTER ── */
+    footer {
+      position:relative; z-index:1;
+      background:var(--foot-bg); border-top:1px solid var(--border2);
+      padding:14px 44px;
+      display:flex; align-items:center; justify-content:space-between;
+      font-family:'JetBrains Mono',monospace; font-size:0.58rem; color:var(--text-dim);
+    }
+    .foot-links { display:flex; gap:22px; }
+    .foot-links a { color:var(--text-dim); text-decoration:none; transition:color 0.18s; }
+    .foot-links a:hover { color:var(--sky); }
+
+    @media(max-width:520px){
+      nav{padding:11px 16px;}
+      .nav-clock{display:none;}
+      .brand-tag{display:none;}
+      .actions{grid-template-columns:1fr;max-width:280px;}
+      h1{font-size:1.4rem;}
+      footer{flex-direction:column;gap:8px;text-align:center;padding:12px 16px;}
+    }
+  </style>
+</head>
+<body>
+<div class="stars"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-brand">
+    <svg class="nav-logo-svg" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="nlg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%"   stop-color="#0ea5e9"/>
+          <stop offset="100%" stop-color="#22d3a5"/>
+        </linearGradient>
+      </defs>
+      <rect width="40" height="40" rx="10" fill="url(#nlg)"/>
+      <rect x="8"  y="18" width="4" height="12" rx="1" fill="white" opacity="0.95"/>
+      <rect x="14" y="18" width="4" height="12" rx="1" fill="white" opacity="0.95"/>
+      <rect x="20" y="18" width="4" height="12" rx="1" fill="white" opacity="0.95"/>
+      <rect x="26" y="18" width="4" height="12" rx="1" fill="white" opacity="0.95"/>
+      <rect x="7"  y="29" width="26" height="3" rx="1.5" fill="white"/>
+      <rect x="7"  y="15" width="26" height="3" rx="1.5" fill="white"/>
+      <polygon points="20,7 7,15 33,15" fill="white" opacity="0.9"/>
+    </svg>
+    <div>
+      <div class="brand-name">NexVault Bank</div>
+      <div class="brand-tag">Secure ATM</div>
+    </div>
+  </a>
+  <div class="nav-right">
+    <div class="nav-clock">
+      <div class="clock-dot"></div>
+      <span class="clock-val" id="clockVal">00:00 AM</span>
+    </div>
+    <div class="theme-btn" id="themeBtn">🌙</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main>
+  <div class="greeting" id="greeting">Good Morning ☀️</div>
+  <div class="date-str"  id="dateStr">Loading...</div>
+
+  <!-- Center bank logo with spinning ring -->
+  <div class="center-logo">
+    <svg class="bank-svg" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="blg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%"   stop-color="#38bdf8"/>
+          <stop offset="100%" stop-color="#22d3a5"/>
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="2" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <circle cx="45" cy="45" r="42" fill="rgba(6,16,32,0.9)" stroke="url(#blg)" stroke-width="1.5" opacity="0.5"/>
+      <rect x="18" y="46" width="8"  height="24" rx="2" fill="url(#blg)" opacity="0.9" filter="url(#glow)"/>
+      <rect x="30" y="46" width="8"  height="24" rx="2" fill="url(#blg)" opacity="0.9" filter="url(#glow)"/>
+      <rect x="42" y="46" width="8"  height="24" rx="2" fill="url(#blg)" opacity="0.9" filter="url(#glow)"/>
+      <rect x="54" y="46" width="8"  height="24" rx="2" fill="url(#blg)" opacity="0.9" filter="url(#glow)"/>
+      <rect x="14" y="69" width="62" height="5" rx="2.5" fill="url(#blg)" filter="url(#glow)"/>
+      <rect x="14" y="38" width="62" height="5" rx="2.5" fill="url(#blg)" filter="url(#glow)"/>
+      <polygon points="45,14 12,38 78,38" fill="url(#blg)" opacity="0.85" filter="url(#glow)"/>
+      <circle cx="45" cy="12" r="3.5" fill="url(#blg)" filter="url(#glow)"/>
+      <rect x="38" y="52" width="14" height="18" rx="7" fill="rgba(2,8,20,0.95)" stroke="url(#blg)" stroke-width="1.5"/>
+      <circle cx="45" cy="61" r="3"   fill="none" stroke="url(#blg)" stroke-width="1.2"/>
+      <circle cx="45" cy="61" r="1"   fill="url(#blg)"/>
+      <line x1="45" y1="56"  x2="45" y2="58.5" stroke="url(#blg)" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="45" y1="63.5" x2="45" y2="66"  stroke="url(#blg)" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="40.5" y1="61" x2="42.5" y2="61" stroke="url(#blg)" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="47.5" y1="61" x2="49.5" y2="61" stroke="url(#blg)" stroke-width="1.2" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <h1>Welcome to NexVault</h1>
+  <p class="sub">Select an option to begin.</p>
+
+  <div class="actions">
+
+    <!-- LOGIN CARD -->
+    <a href="/login" class="act-card login-card"
+       id="loginCard"
+       onmouseenter="lockOpen(true)"
+       onmouseleave="lockOpen(false)">
+      <div class="act-icon" id="lockIcon">
+        <em class="lock-emoji" id="lockEmoji">🔒</em>
+      </div>
+      <div class="act-label">Login</div>
+    </a>
+
+    <!-- REGISTER CARD -->
+    <a href="/register" class="act-card reg-card">
+      <div class="act-icon">👤</div>
+      <div class="act-label">Register</div>
+    </a>
+
+  </div>
+
+  <div class="sec-strip">
+    <div class="sec-dot"></div>
+    Your security is our priority — please ensure no one is watching
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <span>© 2025 NexVault Bank. All rights reserved.</span>
+  <div class="foot-links">
+    <a href="#">Privacy Policy</a>
+    <a href="#">ATM Support</a>
+  </div>
+</footer>
+
+<script>
+  /* ── LOCK OPEN ANIMATION ── */
+  let lockTimer = null;
+  function lockOpen(entering) {
+    const el = document.getElementById('lockEmoji');
+    clearTimeout(lockTimer);
+    if (entering) {
+      // Small delay then open
+      lockTimer = setTimeout(() => {
+        el.style.transform = 'rotate(-25deg) scale(1.15)';
+        el.textContent = '🔓';
+      }, 120);
+    } else {
+      el.style.transform = 'scale(1)';
+      lockTimer = setTimeout(() => {
+        el.textContent = '🔒';
+      }, 200);
+    }
+  }
+
+  /* ── LIVE CLOCK ── */
+  function tick() {
+    const now  = new Date();
+    const h    = now.getHours();
+    const m    = String(now.getMinutes()).padStart(2,'0');
+    const h12  = String(h % 12 || 12).padStart(2,'0');
+    const ampm = h < 12 ? 'AM' : 'PM';
+    document.getElementById('clockVal').textContent = `${h12}:${m} ${ampm}`;
+    document.getElementById('greeting').textContent =
+      h < 12 ? 'Good Morning ☀️' :
+      h < 17 ? 'Good Afternoon 🌤️' : 'Good Evening 🌙';
+    const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.getElementById('dateStr').textContent =
+      `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  }
+  tick(); setInterval(tick, 1000);
+
+  /* ── THEME TOGGLE ── */
+  const btn  = document.getElementById('themeBtn');
+  const html = document.documentElement;
+  const saved = localStorage.getItem('nv-theme') || 'dark';
+  html.setAttribute('data-theme', saved);
+  btn.textContent = saved === 'dark' ? '🌙' : '☀️';
+  btn.addEventListener('click', () => {
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    btn.textContent = next === 'dark' ? '🌙' : '☀️';
+    localStorage.setItem('nv-theme', next);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Enter PIN | FaceATM</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- Brand -->
+  <div class="atm-brand">
+    <div class="logo-icon">🔐</div>
+    <h1>FaceATM</h1>
+    <p>SECURE BIOMETRIC BANKING</p>
+  </div>
+
+  <div class="card" style="text-align:center;">
+    <div class="card-title" style="justify-content:center;">
+      <span class="icon">🔑</span> Enter Your PIN
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <!-- PIN dots display -->
+    <div class="pin-display">
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+      <div class="pin-dot" id="d4"></div>
+    </div>
+
+    <!-- Security note -->
+    <p style="font-family:'Share Tech Mono',monospace; font-size:0.72rem;
+              color:var(--text-muted); letter-spacing:1px; margin-bottom:24px; line-height:1.7;">
+      Keypad is <span style="color:var(--gold)">randomly shuffled</span> on each load.<br>
+      Shoulder surfing is prevented by position randomization.
+    </p>
+
+    <!-- Shuffled Keypad rendered by JS -->
+    <div class="keypad" id="keypad"></div>
+
+    <!-- Shuffle again link -->
+    <div class="security-badge">
+      🔒 <span>SHUFFLE KEYPAD</span>
+      <button type="button"
+        onclick="buildKeypad()"
+        style="background:none; border:none; color:var(--accent); font-family:'Share Tech Mono',monospace;
+               font-size:0.72rem; cursor:pointer; letter-spacing:1px; padding:0; text-decoration:underline;">
+        ↻ Reshuffle
+      </button>
+    </div>
+
+    <!-- Hidden form -->
+    <form method="POST" action="/pin" id="pinForm">
+      <input type="hidden" name="pin" id="hiddenPin"/>
+    </form>
+
+    <!-- Wrong attempts counter -->
+    <div id="attemptsWarning" style="display:none; margin-top:16px;"
+         class="alert alert-error">
+      ⚠️ <span id="attemptsText"></span>
+    </div>
+
+  </div><!-- /.card -->
+
+  <div class="divider"></div>
+  <div class="link-row"><a href="/logout">← Logout</a></div>
+
+</div><!-- /.page-wrapper -->
+
+<script>
+  let enteredPin = '';
+  const MAX_DIGITS = 4;
+
+  function buildKeypad() {
+    const keypad = document.getElementById('keypad');
+    keypad.innerHTML = '';
+
+    // Shuffle digits 0-9
+    const digits = [0,1,2,3,4,5,6,7,8,9];
+    for (let i = digits.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [digits[i], digits[j]] = [digits[j], digits[i]];
+    }
+
+    // Fill 12-cell grid: 10 digits + CLEAR + ENTER
+    const layout = [...digits.slice(0, 10), 'CLR', 'OK'];
+
+    layout.forEach(k => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = k;
+
+      if (k === 'CLR') {
+        btn.className = 'key key-clear';
+        btn.onclick = clearPin;
+      } else if (k === 'OK') {
+        btn.className = 'key key-enter';
+        btn.onclick = submitPin;
+      } else {
+        btn.className = 'key';
+        btn.onclick = () => addDigit(k.toString());
+      }
+
+      keypad.appendChild(btn);
+    });
+  }
+
+  function addDigit(d) {
+    if (enteredPin.length >= MAX_DIGITS) return;
+    enteredPin += d;
+    updateDots();
+    // Shuffle after each keypress for max security
+    buildKeypad();
+  }
+
+  function clearPin() {
+    enteredPin = '';
+    updateDots();
+    buildKeypad();
+  }
+
+  function submitPin() {
+    if (enteredPin.length < MAX_DIGITS) {
+      showWarning(`Please enter all ${MAX_DIGITS} digits.`);
+      return;
+    }
+    document.getElementById('hiddenPin').value = enteredPin;
+    document.getElementById('pinForm').submit();
+  }
+
+  function updateDots() {
+    for (let i = 1; i <= MAX_DIGITS; i++) {
+      const dot = document.getElementById('d' + i);
+      dot.className = 'pin-dot' + (i <= enteredPin.length ? ' filled' : '');
+    }
+  }
+
+  function showWarning(msg) {
+    const w = document.getElementById('attemptsWarning');
+    document.getElementById('attemptsText').textContent = msg;
+    w.style.display = 'flex';
+    setTimeout(() => { w.style.display = 'none'; }, 3000);
+  }
+
+  // Keyboard support
+  document.addEventListener('keydown', e => {
+    if (e.key >= '0' && e.key <= '9') addDigit(e.key);
+    else if (e.key === 'Backspace') clearPin();
+    else if (e.key === 'Enter') submitPin();
+  });
+
+  // Build on load
+  buildKeypad();
+</script>
+</body>
+</html>

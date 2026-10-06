@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Aadhaar Verification — NexVault Bank</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    /* ── AADHAAR INPUT ── */
+    .aadhar-wrap {
+      display: flex; gap: 8px; align-items: center;
+    }
+    .aadhar-group {
+      flex: 1;
+    }
+    .aadhar-group input {
+      text-align: center;
+      letter-spacing: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem; font-weight: 600;
+    }
+    .aadhar-sep {
+      color: var(--text-dim, #2d4a60);
+      font-size: 1.2rem; font-weight: 700;
+      flex-shrink: 0; padding-bottom: 2px;
+    }
+
+    /* ── OTP DISPLAY BOX ── */
+    .otp-reveal-box {
+      background: rgba(56,189,248,0.06);
+      border: 1px solid rgba(56,189,248,0.2);
+      border-radius: 14px;
+      padding: 24px 20px;
+      text-align: center;
+      margin-bottom: 24px;
+      position: relative; overflow: hidden;
+    }
+    .otp-reveal-box::before {
+      content: '';
+      position: absolute; top: 0; left: 20%; right: 20%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(56,189,248,0.5), transparent);
+    }
+    .otp-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem; color: var(--text-dim, #2d4a60);
+      letter-spacing: 3px; text-transform: uppercase; margin-bottom: 12px;
+    }
+    .otp-digits {
+      display: flex; justify-content: center; gap: 12px;
+    }
+    .otp-digit {
+      width: 52px; height: 64px;
+      background: rgba(4,12,26,0.9);
+      border: 1px solid rgba(56,189,248,0.3);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Unbounded', sans-serif;
+      font-size: 1.8rem; font-weight: 900;
+      color: #38bdf8;
+      box-shadow: 0 0 16px rgba(56,189,248,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+      animation: digitGlow 2s ease-in-out infinite;
+    }
+    .otp-digit:nth-child(1) { animation-delay: 0s; }
+    .otp-digit:nth-child(2) { animation-delay: 0.08s; }
+    .otp-digit:nth-child(3) { animation-delay: 0.16s; }
+    .otp-digit:nth-child(4) { animation-delay: 0.24s; }
+    @keyframes digitGlow {
+      0%,100% { box-shadow: 0 0 16px rgba(56,189,248,0.15), inset 0 1px 0 rgba(255,255,255,0.05); }
+      50%      { box-shadow: 0 0 28px rgba(56,189,248,0.35), inset 0 1px 0 rgba(255,255,255,0.08); }
+    }
+
+    .otp-note {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem; color: var(--text-mid, #64849e);
+      margin-top: 12px; letter-spacing: 0.5px;
+    }
+
+    /* ── OTP INPUT BOXES ── */
+    .otp-input-row {
+      display: flex; gap: 12px; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .otp-box {
+      width: 56px; height: 64px;
+      background: var(--surface2, #0d1620);
+      border: 1.5px solid var(--border, rgba(255,255,255,0.06));
+      border-radius: 12px;
+      text-align: center;
+      font-family: 'Unbounded', sans-serif;
+      font-size: 1.6rem; font-weight: 900;
+      color: var(--text, #e2eaf4);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      caret-color: var(--sky, #38bdf8);
+    }
+    .otp-box:focus {
+      border-color: rgba(56,189,248,0.5);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.12);
+    }
+    .otp-box.filled {
+      border-color: rgba(34,211,165,0.4);
+      color: var(--green, #22d3a5);
+    }
+    .otp-box.wrong {
+      border-color: rgba(244,63,94,0.5);
+      animation: shake 0.4s ease;
+    }
+    @keyframes shake {
+      0%,100%{transform:translateX(0)}
+      20%{transform:translateX(-6px)}
+      40%{transform:translateX(6px)}
+      60%{transform:translateX(-4px)}
+      80%{transform:translateX(4px)}
+    }
+
+    /* ── STEPS ── */
+    .steps { display:flex; align-items:center; margin-bottom:28px; }
+    .step-item { display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text-dim,#2d4a60); letter-spacing:1.5px; text-transform:uppercase; }
+    .step-item.active { color:var(--sky,#38bdf8); }
+    .step-item.done   { color:var(--green,#22d3a5); }
+    .step-num { width:24px; height:24px; border-radius:50%; border:1px solid currentColor; display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:700; }
+    .step-item.active .step-num { background:rgba(56,189,248,0.1); }
+    .step-item.done   .step-num { background:rgba(34,211,165,0.1); }
+    .step-line { flex:1; height:1px; background:var(--border,rgba(255,255,255,0.06)); margin:0 8px; }
+    .step-line.done { background:rgba(34,211,165,0.3); }
+
+    /* ── AADHAAR CARD VISUAL ── */
+    .aadhaar-visual {
+      background: linear-gradient(135deg, #1a0533, #0a1628);
+      border: 1px solid rgba(99,60,180,0.3);
+      border-radius: 14px; padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex; align-items: center; gap: 14px;
+      position: relative; overflow: hidden;
+    }
+    .aadhaar-visual::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(99,60,180,0.5), transparent);
+    }
+    .aadhaar-logo {
+      width: 48px; height: 48px; flex-shrink: 0;
+      background: linear-gradient(145deg, #6b21a8, #4f46e5);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+      box-shadow: 0 0 16px rgba(99,60,180,0.3);
+    }
+    .aadhaar-info {}
+    .aadhaar-title {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.72rem; font-weight: 700;
+      color: var(--text, #e2eaf4); margin-bottom: 3px;
+    }
+    .aadhaar-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem; color: #a78bfa;
+      letter-spacing: 0.5px;
+    }
+
+    /* Field err */
+    .field-err {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem; color: #fb7185;
+      margin-top: 5px; display: none; padding-left: 4px;
+    }
+    .field-err.show { display: block; }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(56,189,248,0.2);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Timer */
+    .otp-timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem; color: var(--amber, #f59e0b);
+      text-align: center; margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+<div class="center-wrap">
+<div class="narrow">
+
+  <!-- Brand -->
+  <div class="brand">
+    <a href="/" class="brand-mark" style="text-decoration:none;">
+      <svg viewBox="0 0 40 40" width="42" height="42" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="blg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#22d3a5"/></linearGradient></defs>
+        <rect width="40" height="40" rx="10" fill="url(#blg2)"/>
+        <rect x="8"  y="18" width="4" height="12" rx="1" fill="white" opacity="0.95"/>
+        <rect x="14" y="18" width="4" height="12" rx="1" fill="white" opacity="0.95"/>
+        <rect x="20" y="18" width="4" height="12" rx="1" fill="white" opacity="0.95"/>
+        <rect x="26" y="18" width="4" height="12" rx="1" fill="white" opacity="0.95"/>
+        <rect x="7"  y="29" width="26" height="3" rx="1.5" fill="white"/>
+        <rect x="7"  y="15" width="26" height="3" rx="1.5" fill="white"/>
+        <polygon points="20,7 7,15 33,15" fill="white" opacity="0.9"/>
+      </svg>
+    </a>
+    <div>
+      <div class="brand-text">NexVault Bank</div>
+      <div class="brand-sub">Aadhaar KYC Verification</div>
+    </div>
+  </div>
+
+  <div class="card">
+
+    <!-- Steps -->
+    <div class="steps">
+      <div class="step-item done"  id="si1"><div class="step-num">✓</div><span>Details</span></div>
+      <div class="step-line done"></div>
+      <div class="step-item active" id="si2"><div class="step-num">2</div><span>Aadhaar</span></div>
+      <div class="step-line" id="sl2"></div>
+      <div class="step-item" id="si3"><div class="step-num">3</div><span>OTP</span></div>
+    </div>
+
+    <!-- ══════════ SCREEN A — AADHAAR NUMBER ══════════ -->
+    <div id="screenA">
+
+      <div class="aadhaar-visual">
+        <div class="aadhaar-logo">🪪</div>
+        <div class="aadhaar-info">
+          <div class="aadhaar-title">Aadhaar KYC</div>
+          <div class="aadhaar-sub">Government of India · UIDAI</div>
+        </div>
+      </div>
+
+      <div class="card-title">Enter Aadhaar Number</div>
+      <div class="card-sub">Your 12-digit Aadhaar number for identity verification.</div>
+
+      <!-- 3 groups of 4 digits -->
+      <div class="form-group">
+        <label>Aadhaar Number</label>
+        <div class="aadhar-wrap">
+          <div class="aadhar-group">
+            <input type="text" id="aad1" maxlength="4" placeholder="XXXX"
+                   inputmode="numeric" autocomplete="off"/>
+          </div>
+          <div class="aadhar-sep">—</div>
+          <div class="aadhar-group">
+            <input type="text" id="aad2" maxlength="4" placeholder="XXXX"
+                   inputmode="numeric" autocomplete="off"/>
+          </div>
+          <div class="aadhar-sep">—</div>
+          <div class="aadhar-group">
+            <input type="text" id="aad3" maxlength="4" placeholder="XXXX"
+                   inputmode="numeric" autocomplete="off"/>
+          </div>
+        </div>
+        <div class="field-err" id="err_aadhar">Must be exactly 12 digits</div>
+      </div>
+
+      <!-- <div class="alert alert-info" style="margin-top:4px;">
+        🔒 Your Aadhaar data is used only for verification and is not stored.
+      </div> -->
+
+      <button type="button" class="btn btn-primary" onclick="sendOTP()" id="sendOtpBtn">
+        Generate OTP →
+      </button>
+      <button type="button" class="btn btn-ghost" style="margin-top:10px;"
+              onclick="window.location.href='/register'">← Back</button>
+    </div>
+
+    <!-- ══════════ SCREEN B — OTP VERIFY ══════════ -->
+    <div id="screenB" style="display:none;">
+
+      <div class="card-title">Enter OTP</div>
+      <div class="card-sub">Check the code displayed below and type it in.</div>
+
+      <!-- OTP Display (shown on screen) -->
+      <div class="otp-reveal-box">
+        <div class="otp-label">Your One-Time Password</div>
+        <div class="otp-digits">
+          <div class="otp-digit" id="od1">—</div>
+          <div class="otp-digit" id="od2">—</div>
+          <div class="otp-digit" id="od3">—</div>
+          <div class="otp-digit" id="od4">—</div>
+        </div>
+        <div class="otp-note">Type this code in the boxes below</div>
+      </div>
+
+      <!-- Timer -->
+      <div class="otp-timer" id="otpTimer">⏱ OTP expires in <span id="timerVal">60</span>s</div>
+
+      <!-- OTP Input -->
+      <div class="otp-input-row">
+        <input class="otp-box" id="ob1" type="text" maxlength="1" inputmode="numeric"/>
+        <input class="otp-box" id="ob2" type="text" maxlength="1" inputmode="numeric"/>
+        <input class="otp-box" id="ob3" type="text" maxlength="1" inputmode="numeric"/>
+        <input class="otp-box" id="ob4" type="text" maxlength="1" inputmode="numeric"/>
+      </div>
+
+      <div class="field-err" id="err_otp" style="text-align:center; margin-bottom:14px;"></div>
+
+      <button type="button" class="btn btn-primary" onclick="verifyOTP()" id="verifyBtn">
+        ✓ Verify & Continue
+      </button>
+      <button type="button" class="btn btn-ghost" style="margin-top:10px;" onclick="backToAadhaar()">
+        ← Re-enter Aadhaar
+      </button>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+  <div class="link-center">Already have an account? <a href="/login">Login →</a></div>
+
+</div>
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   LOAD session data (from register page)
+══════════════════════════════════════ */
+const regData = JSON.parse(sessionStorage.getItem('reg_data') || '{}');
+if (!regData.firstname) {
+  // No session data — redirect back
+  window.location.href = '/register';
+}
+
+/* ══════════════════════════════════════
+   AADHAAR INPUT — digits only, auto-jump
+══════════════════════════════════════ */
+['aad1','aad2','aad3'].forEach((id, idx) => {
+  const inp = document.getElementById(id);
+  inp.addEventListener('input', function() {
+    this.value = this.value.replace(/\D/g, '');
+    if (this.value.length === 4 && idx < 2) {
+      document.getElementById(['aad1','aad2','aad3'][idx+1]).focus();
+    }
+  });
+  inp.addEventListener('keydown', function(e) {
+    if (e.key === 'Backspace' && this.value === '' && idx > 0) {
+      document.getElementById(['aad1','aad2','aad3'][idx-1]).focus();
+    }
+  });
+});
+
+function getAadhaar() {
+  return document.getElementById('aad1').value +
+         document.getElementById('aad2').value +
+         document.getElementById('aad3').value;
+}
+
+/* ══════════════════════════════════════
+   OTP GENERATION
+══════════════════════════════════════ */
+let generatedOTP = '';
+let timerInterval = null;
+
+function sendOTP() {
+  const aadhar = getAadhaar();
+  const errEl  = document.getElementById('err_aadhar');
+
+  if (!/^\d{12}$/.test(aadhar)) {
+    errEl.textContent = 'Must be exactly 12 digits';
+    errEl.classList.add('show');
+    return;
+  }
+  errEl.classList.remove('show');
+
+  const btn = document.getElementById('sendOtpBtn');
+  btn.innerHTML = '<span class="spinner"></span> Generating...';
+  btn.disabled = true;
+
+  // Simulate brief verification delay
+  setTimeout(() => {
+    // Generate random 4-digit OTP
+    generatedOTP = String(Math.floor(1000 + Math.random() * 9000));
+
+    // Show OTP on screen digit by digit — fast reveal
+    generatedOTP.split('').forEach((d, i) => {
+      setTimeout(() => {
+        const el = document.getElementById('od' + (i+1));
+        el.textContent = d;
+        el.style.animation = 'none';
+        void el.offsetWidth;
+        el.style.animation = '';
+      }, i * 60);  // 60ms per digit — fast
+    });
+
+    // Switch to OTP screen
+    document.getElementById('screenA').style.display = 'none';
+    document.getElementById('screenB').style.display = 'block';
+    document.getElementById('si2').className = 'step-item done';
+    document.getElementById('si2').querySelector('.step-num').textContent = '✓';
+    document.getElementById('sl2').className = 'step-line done';
+    document.getElementById('si3').className = 'step-item active';
+
+    // Focus first OTP box
+    setTimeout(() => document.getElementById('ob1').focus(), 300);
+
+    // Start countdown timer
+    startTimer();
+
+    btn.innerHTML = 'Generate OTP →';
+    btn.disabled = false;
+  }, 400);
+}
+
+function startTimer() {
+  let secs = 60;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    secs--;
+    document.getElementById('timerVal').textContent = secs;
+    if (secs <= 0) {
+      clearInterval(timerInterval);
+      document.getElementById('otpTimer').innerHTML = '⚠ OTP expired — <a href="#" onclick="backToAadhaar();return false;" style="color:#38bdf8;">Generate new</a>';
+      generatedOTP = ''; // Invalidate
+    }
+  }, 1000);
+}
+
+/* ══════════════════════════════════════
+   OTP INPUT — auto-jump
+══════════════════════════════════════ */
+['ob1','ob2','ob3','ob4'].forEach((id, idx) => {
+  const inp = document.getElementById(id);
+  const ids = ['ob1','ob2','ob3','ob4'];
+
+  inp.addEventListener('input', function() {
+    this.value = this.value.replace(/\D/g, '');
+    if (this.value) {
+      this.classList.add('filled');
+      if (idx < 3) document.getElementById(ids[idx+1]).focus();
+    } else {
+      this.classList.remove('filled');
+    }
+  });
+
+  inp.addEventListener('keydown', function(e) {
+    if (e.key === 'Backspace' && this.value === '' && idx > 0) {
+      const prev = document.getElementById(ids[idx-1]);
+      prev.value = '';
+      prev.classList.remove('filled');
+      prev.focus();
+    }
+    // Enter on last box = verify
+    if (e.key === 'Enter' && idx === 3) verifyOTP();
+  });
+});
+
+/* ══════════════════════════════════════
+   OTP VERIFY → submit to backend
+══════════════════════════════════════ */
+function verifyOTP() {
+  const entered = ['ob1','ob2','ob3','ob4']
+    .map(id => document.getElementById(id).value).join('');
+  const errEl = document.getElementById('err_otp');
+
+  if (entered.length < 4) {
+    errEl.textContent = 'Please enter all 4 digits';
+    errEl.classList.add('show');
+    return;
+  }
+
+  if (!generatedOTP) {
+    errEl.textContent = 'OTP expired. Please generate a new one.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  if (entered !== generatedOTP) {
+    errEl.textContent = '✗ Incorrect OTP. Please try again.';
+    errEl.classList.add('show');
+    // Shake all boxes
+    ['ob1','ob2','ob3','ob4'].forEach(id => {
+      const el = document.getElementById(id);
+      el.classList.add('wrong');
+      el.value = '';
+      el.classList.remove('filled');
+      setTimeout(() => el.classList.remove('wrong'), 500);
+    });
+    document.getElementById('ob1').focus();
+    return;
+  }
+
+  // OTP matched ✓
+  clearInterval(timerInterval);
+  errEl.classList.remove('show');
+
+  const btn = document.getElementById('verifyBtn');
+  btn.innerHTML = '<span class="spinner"></span> Verified! Submitting...';
+  btn.disabled = true;
+
+  // Submit all data to backend
+  const aadhar = getAadhaar();
+  const payload = { ...regData, aadhar_number: aadhar };
+
+  fetch('/register/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      // Save profile data for success page
+      sessionStorage.setItem('reg_success', JSON.stringify({
+        ...regData,
+        aadhar_number: aadhar
+      }));
+      sessionStorage.removeItem('reg_data');
+      window.location.href = '/register/success';
+    } else {
+      btn.innerHTML = '✓ Verify & Continue';
+      btn.disabled = false;
+      errEl.textContent = data.error || 'Registration failed. Try again.';
+      errEl.classList.add('show');
+    }
+  })
+  .catch(() => {
+    btn.innerHTML = '✓ Verify & Continue';
+    btn.disabled = false;
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.classList.add('show');
+  });
+}
+
+function backToAadhaar() {
+  clearInterval(timerInterval);
+  document.getElementById('screenB').style.display = 'none';
+  document.getElementById('screenA').style.display = 'block';
+  document.getElementById('si2').className = 'step-item active';
+  document.getElementById('si2').querySelector('.step-num').textContent = '2';
+  document.getElementById('sl2').className = 'step-line';
+  document.getElementById('si3').className = 'step-item';
+  // Clear OTP inputs
+  ['ob1','ob2','ob3','ob4'].forEach(id => {
+    const el = document.getElementById(id);
+    el.value = ''; el.classList.remove('filled','wrong');
+  });
+}
+</script>
+</body>
+</html>
